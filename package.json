@@ -1,0 +1,48 @@
+{
+  "name": "la-movie-|-agencia-creativa-&-recursos-digitales",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx server.ts",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remix-run/router": "1.15.3",
+    "@vercel/analytics": "^1.6.1",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "geoip-lite": "^1.4.10",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^0.344.0",
+    "motion": "^12.38.0",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.7",
+    "pg": "^8.20.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-helmet-async": "^3.0.0",
+    "react-router": "6.22.3",
+    "react-router-dom": "6.22.3",
+    "recharts": "^3.8.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/geoip-lite": "^1.4.4",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^22.14.0",
+    "@types/nodemailer": "^8.0.0",
+    "@types/pg": "^8.18.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}

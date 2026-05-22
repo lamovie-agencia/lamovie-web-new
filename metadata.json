@@ -1,0 +1,6 @@
+{
+  "name": "LA MOVIE | Agencia Creativa & Recursos Digitales",
+  "description": "Agencia de Marketing Digital, Tráfico Web, Producción Viral e IA. Posiciona, atrae tráfico de pago y escala las ventas en tu nicho de forma eficiente.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

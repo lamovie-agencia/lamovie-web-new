@@ -1,0 +1,3 @@
+
+// SCHEMA DISABLED
+export default {}
