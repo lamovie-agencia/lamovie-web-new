@@ -19,6 +19,7 @@ const __dirname = path.dirname(__filename);
 
 // --- STARTUP ENVIRONMENT CONFIGURATION VALIDATION ---
 const databaseUrl = process.env.DATABASE_URL;
+const adminUsername = process.env.ADMIN_USERNAME || "admin";
 const adminPassword = process.env.ADMIN_PASSWORD;
 const jwtSecret = process.env.JWT_SECRET;
 
@@ -613,12 +614,12 @@ async function startServer() {
       return res.status(500).json({ error: "Contraseña maestra del portal de administración no configurada en el servidor." });
     }
 
-    if (password !== masterPassword) {
+    if (username !== adminUsername || password !== masterPassword) {
       return res.status(401).json({ error: "Credenciales de seguridad incorrectas" });
     }
     
     const token = jwt.sign(
-      { username: username || "admin", role: "Administrador Master" }, 
+      { username: username || adminUsername, role: "Administrador Master" }, 
       process.env.JWT_SECRET || "lamovie_secure_fallback_salt_2026", 
       { expiresIn: "24h" }
     );

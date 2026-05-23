@@ -17,7 +17,7 @@ View your app in AI Studio: https://ai.studio/apps/b3fd082e-441f-45d5-bc81-8e429
 2. Create a local `.env` file from the example:
    `copy .env.example .env`
 3. Edit `.env` and set these required values:
-   `DATABASE_URL`, `JWT_SECRET`, and `ADMIN_PASSWORD`
+   `DATABASE_URL`, `JWT_SECRET`, `ADMIN_USERNAME`, and `ADMIN_PASSWORD`
 4. Run the app:
    `npm run dev`
 
