@@ -77,8 +77,8 @@ const routeHandlers: Record<string, ApiHandler> = {
 
 function normalizePath(req: VercelRequest) {
   const rawPath = req.query.path;
-  const parts = Array.isArray(rawPath) ? rawPath : rawPath ? [rawPath] : req.url?.split('?')[0]?.replace(/^\/api\/?/, '').split('/') || [];
-  return parts.map(String).filter(Boolean);
+  const parts = Array.isArray(rawPath) ? rawPath : rawPath ? String(rawPath).split('/') : req.url?.split('?')[0]?.replace(/^\/api\/?/, '').split('/') || [];
+  return parts.flatMap((part) => String(part).split('/')).filter(Boolean);
 }
 
 function resolveRoute(parts: string[]) {
