@@ -225,6 +225,37 @@ export const adminService = {
     return res.json();
   },
 
+  // Client partners / logos
+  getPartners: async (token?: string) => {
+    const res = await secureFetch(`${API_URL}/partners`, {}, token);
+    return res.json();
+  },
+
+  createPartner: async (data: any, token?: string) => {
+    const res = await secureFetch(`${API_URL}/partners`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }, token);
+    return res.json();
+  },
+
+  updatePartner: async (id: number, data: any, token?: string) => {
+    const res = await secureFetch(`${API_URL}/partners/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }, token);
+    return res.json();
+  },
+
+  deletePartner: async (id: number, token?: string) => {
+    const res = await secureFetch(`${API_URL}/partners/${id}`, {
+      method: 'DELETE',
+    }, token);
+    return res.json();
+  },
+
   // Tasks
   getTasks: async (token?: string) => {
     const res = await secureFetch(`${API_URL}/admin-tasks`, {}, token);

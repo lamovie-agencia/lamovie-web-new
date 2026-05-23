@@ -153,6 +153,33 @@ export async function ensureCoreSchema() {
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
+        CREATE TABLE IF NOT EXISTS portfolio (
+          id SERIAL PRIMARY KEY,
+          title TEXT NOT NULL,
+          category TEXT DEFAULT 'cinema',
+          description TEXT DEFAULT '',
+          format_type TEXT DEFAULT 'horizontal',
+          media_source TEXT DEFAULT 'native',
+          media_url TEXT DEFAULT '',
+          thumbnail_url TEXT DEFAULT '',
+          image_url TEXT DEFAULT '',
+          video_url TEXT DEFAULT '',
+          views INTEGER DEFAULT 0,
+          likes INTEGER DEFAULT 0,
+          display_order INTEGER DEFAULT 0,
+          click_count INTEGER DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS client_partners (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          logo_url TEXT NOT NULL,
+          website_url TEXT DEFAULT '',
+          featured BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
         CREATE TABLE IF NOT EXISTS web_showcase (
           id SERIAL PRIMARY KEY,
           title TEXT NOT NULL,
@@ -256,6 +283,11 @@ export async function ensureCoreSchema() {
         ALTER TABLE services ADD COLUMN IF NOT EXISTS description TEXT DEFAULT '';
         ALTER TABLE services ADD COLUMN IF NOT EXISTS items TEXT[] DEFAULT '{}';
         ALTER TABLE services ADD COLUMN IF NOT EXISTS icon TEXT DEFAULT '';
+
+        ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS views INTEGER DEFAULT 0;
+        ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0;
+        ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
+        ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS click_count INTEGER DEFAULT 0;
       `);
     })();
   }

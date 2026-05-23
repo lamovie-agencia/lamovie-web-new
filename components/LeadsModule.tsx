@@ -13,6 +13,20 @@ export function LeadsModule() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterOrigin, setFilterOrigin] = useState('all');
 
+  const normalizePhone = (phone: string) => String(phone || '').replace(/[^\d]/g, '');
+  const statusOptions = [
+    { id: 'new', label: 'Nuevo' },
+    { id: 'contacted', label: 'En Contacto' },
+    { id: 'closed', label: 'Cerrado' },
+    { id: 'discarded', label: 'Descartado' }
+  ];
+
+  const updateLeadStatus = async (lead: any, status: string) => {
+    if (!token) return;
+    await adminService.updateCrmClient(lead.id, { ...lead, status }, token);
+    fetchLeads();
+  };
+
   const fetchLeads = useCallback(async () => {
     if (!token) return;
     try {
@@ -69,7 +83,7 @@ export function LeadsModule() {
         <div className="bg-white/5 border border-white/10 p-6 rounded-[24px]">
           <h4 className="text-white/40 text-[10px] font-bold uppercase tracking-widest mb-2">Tasa de Conversión</h4>
           <p className="text-4xl font-black text-green-400">
-            {leads?.length ? Math.round(((Array.isArray(leads) ? leads : []).filter(l => l?.status === 'converted').length / leads.length) * 100) : 0}%
+            {leads?.length ? Math.round(((Array.isArray(leads) ? leads : []).filter(l => l?.status === 'closed' || l?.status === 'converted').length / leads.length) * 100) : 0}%
           </p>
         </div>
       </div>
@@ -170,15 +184,35 @@ export function LeadsModule() {
                     <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
                       lead.status === 'new' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
                       lead.status === 'contacted' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                      lead.status === 'discarded' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
                       'bg-green-500/20 text-green-400 border-green-500/30'
                     }`}>
                       {lead.status === 'new' && <Clock size={10} />}
                       {lead.status === 'contacted' && <Search size={10} />}
-                      {lead.status === 'converted' && <CheckCircle size={10} />}
-                      {lead.status === 'new' ? 'Nuevo' : lead.status === 'contacted' ? 'Contactado' : 'Convertido'}
+                      {(lead.status === 'closed' || lead.status === 'converted') && <CheckCircle size={10} />}
+                      {lead.status === 'discarded' && <XCircle size={10} />}
+                      {lead.status === 'new' ? 'Nuevo' : lead.status === 'contacted' ? 'En Contacto' : lead.status === 'discarded' ? 'Descartado' : 'Cerrado'}
                     </span>
                   </td>
                   <td className="py-4 px-4 text-right flex items-center justify-end gap-2">
+                    <select
+                      className="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-[10px] text-white focus:outline-none [&>option]:bg-gray-900"
+                      value={lead.status || 'new'}
+                      onChange={(e) => updateLeadStatus(lead, e.target.value)}
+                    >
+                      {statusOptions.map((opt) => <option key={opt.id} value={opt.id}>{opt.label}</option>)}
+                    </select>
+                    {normalizePhone(lead.phone) && (
+                      <a
+                        href={`https://wa.me/${normalizePhone(lead.phone)}?text=Hola%20${encodeURIComponent(lead.name || '')},%20soy%20de%20LA%20MOVIE.%20Recibimos%20tu%20solicitud%20sobre%20${encodeURIComponent(lead.service || 'nuestros servicios')}.`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-green-500/10 hover:bg-green-500/20 text-green-400 rounded-lg transition-all"
+                        title="Contactar por WhatsApp"
+                      >
+                        <Phone size={14} />
+                      </a>
+                    )}
                     <button 
                       onClick={async () => {
                         if(token) {

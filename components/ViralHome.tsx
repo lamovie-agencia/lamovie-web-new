@@ -7,6 +7,8 @@ import About from './About';
 import Contact from './Contact';
 import Pricing from './Pricing';
 import SEO from './SEO';
+import ClientLogos from './ClientLogos';
+import ReelsShowcase from './ReelsShowcase';
 
 const REELS = [
   "https://videos.pexels.com/video-files/5896379/5896379-sd_540_960_24fps.mp4",
@@ -146,7 +148,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
       </section>
 
       {/* 3. MARCAS QUE CONFÍAN (Infinite Ticker) - Fused directly under Hero */}
-      <section className="py-12 border-y border-white/5 bg-black/60 backdrop-blur-md overflow-hidden relative z-20">
+      <section className="hidden py-12 border-y border-white/5 bg-black/60 backdrop-blur-md overflow-hidden relative z-20">
         <div className="text-center mb-8">
           <p className="text-xs uppercase tracking-[0.4em] font-black text-white/50">
             MARCAS QUE CONFÍAN EN NUESTRO IMPACTO
@@ -166,7 +168,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
       </section>
 
       {/* 2. CARRUSEL DE REELS (Automático) */}
-      <section className="relative z-20 pt-16 pb-20 overflow-hidden">
+      <section className="hidden relative z-20 pt-16 pb-20 overflow-hidden">
         <div 
           className="flex w-max animate-scroll-film hover:[animation-play-state:paused]"
           style={{ willChange: 'transform', transform: 'translate3d(0,0,0)' }}
@@ -204,6 +206,9 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
       </section>
 
       {/* 4. TRAYECTORIA / ESTADÍSTICAS */}
+      <ClientLogos />
+      <ReelsShowcase />
+
       <section className="py-32 container mx-auto px-6 relative">
         <div className="grid md:grid-cols-2 gap-16 items-center">
           <motion.div 

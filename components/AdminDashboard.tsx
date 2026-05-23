@@ -55,7 +55,7 @@ import {
   MapPin
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'crm' | 'leads' | 'projects' | 'production' | 'social' | 'ai' | 'analytics' | 'finance' | 'documents' | 'portfolio' | 'services' | 'testimonials' | 'web-showcase' | 'pricing' | 'settings' | 'tasks' | 'notes';
+type Tab = 'dashboard' | 'crm' | 'leads' | 'projects' | 'production' | 'social' | 'ai' | 'analytics' | 'finance' | 'documents' | 'portfolio' | 'partners' | 'services' | 'testimonials' | 'web-showcase' | 'pricing' | 'settings' | 'tasks' | 'notes';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -119,6 +119,7 @@ const AdminDashboard: React.FC = () => {
   const [testimonials, setTestimonials] = useState<any[]>([]);
   const [webShowcase, setWebShowcase] = useState<any[]>([]);
   const [pricing, setPricing] = useState<any[]>([]);
+  const [partners, setPartners] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>({});
   const [tasks, setTasks] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
@@ -215,6 +216,13 @@ const AdminDashboard: React.FC = () => {
     icon: 'Film'
   });
 
+  const [partnerForm, setPartnerForm] = useState({
+    name: '',
+    logo_url: '',
+    website_url: '',
+    featured: true
+  });
+
   const [taskForm, setTaskForm] = useState({ title: '', due_date: '', reminder: '' });
   const [noteForm, setNoteForm] = useState({ content: '', reminder: '' });
   const [crmClients, setCrmClients] = useState<any[]>([]);
@@ -230,12 +238,13 @@ const AdminDashboard: React.FC = () => {
     if (!currentToken) return;
     setLoading(true);
     try {
-      const [pData, sData, tData, wData, prData, settingsData, tskData, ntsData, crmData, statusData, aiLogsData] = await Promise.all([
+      const [pData, sData, tData, wData, prData, partnersData, settingsData, tskData, ntsData, crmData, statusData, aiLogsData] = await Promise.all([
         adminService.getPortfolio().catch((err) => { console.warn("Portfolio fetch failed", err); return []; }),
         adminService.getServices().catch((err) => { console.warn("Services fetch failed", err); return []; }),
         adminService.getTestimonials().catch((err) => { console.warn("Testimonials fetch failed", err); return []; }),
         adminService.getWebShowcase().catch((err) => { console.warn("WebShowcase fetch failed", err); return []; }),
         adminService.getPricing().catch((err) => { console.warn("Pricing fetch failed", err); return []; }),
+        adminService.getPartners(currentToken).catch((err) => { console.warn("Partners fetch failed", err); return []; }),
         adminService.getSettings().catch((err) => { console.warn("Settings fetch failed", err); return {}; }),
         adminService.getTasks(currentToken).catch((err) => { console.warn("Tasks fetch failed", err); return []; }),
         adminService.getNotes(currentToken).catch((err) => { console.warn("Notes fetch failed", err); return []; }),
@@ -248,6 +257,7 @@ const AdminDashboard: React.FC = () => {
       setTestimonials(Array.isArray(tData) ? tData : []);
       setWebShowcase(Array.isArray(wData) ? wData : []);
       setPricing(Array.isArray(prData) ? prData : []);
+      setPartners(Array.isArray(partnersData) ? partnersData : []);
       setSettings(settingsData || {});
       setTasks(Array.isArray(tskData) ? tskData : []);
       setNotes(Array.isArray(ntsData) ? ntsData : []);
@@ -483,6 +493,26 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handlePartnerSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+    setIsSubmitting(true);
+    try {
+      if (editingId) {
+        await adminService.updatePartner(editingId, partnerForm, token);
+        setEditingId(null);
+      } else {
+        await adminService.createPartner(partnerForm, token);
+      }
+      setPartnerForm({ name: '', logo_url: '', website_url: '', featured: true });
+      fetchData();
+    } catch (err) {
+      alert('Error al guardar cliente/partner');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSettingsSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
@@ -594,6 +624,7 @@ const AdminDashboard: React.FC = () => {
       if (type === 'testimonials') await adminService.deleteTestimonial(id, token);
       if (type === 'web-showcase') await adminService.deleteWebShowcase(id, token);
       if (type === 'pricing') await adminService.deletePricing(id, token);
+      if (type === 'partners') await adminService.deletePartner(id, token);
       if (type === 'tasks') await adminService.deleteTask(id, token);
       if (type === 'notes') await adminService.deleteNote(id, token);
       if (type === 'crm') await adminService.deleteCrmClient(id, token);
@@ -648,6 +679,13 @@ const AdminDashboard: React.FC = () => {
         recommended: item.recommended || false,
         color: item.color || 'border-white/20',
         icon: item.icon || 'Film'
+      });
+    } else if (type === 'partners') {
+      setPartnerForm({
+        name: item.name || '',
+        logo_url: item.logo_url || '',
+        website_url: item.website_url || '',
+        featured: item.featured !== false
       });
     }
     setActiveTab(type);
@@ -761,6 +799,7 @@ const AdminDashboard: React.FC = () => {
              <div className="space-y-1">
                 {[
                   { id: 'portfolio', label: 'Portafolio Web', icon: <ImageIcon size={16} /> },
+                  { id: 'partners', label: 'Clientes / Partners', icon: <Users size={16} /> },
                   { id: 'web-showcase', label: 'Web Showcase', icon: <Globe size={16} /> },
                   { id: 'services', label: 'Servicios', icon: <Briefcase size={16} /> },
                   { id: 'pricing', label: 'Planes Públicos', icon: <Tag size={16} /> },
@@ -876,6 +915,7 @@ const AdminDashboard: React.FC = () => {
                   {activeTab === 'finance' && 'FINANZAS Y FACTURACIÓN'}
                   {activeTab === 'documents' && 'GENERADOR DE DOCUMENTOS'}
                   {activeTab === 'portfolio' && 'PORTAFOLIO WEB'}
+                  {activeTab === 'partners' && 'CLIENTES Y PARTNERS'}
                   {activeTab === 'services' && 'SERVICIOS PÚBLICOS'}
                   {activeTab === 'web-showcase' && 'WEB SHOWCASE'}
                   {activeTab === 'pricing' && 'PLANES PÚBLICOS'}
@@ -1601,6 +1641,55 @@ const AdminDashboard: React.FC = () => {
 
             {activeTab === 'portfolio' && (
               <PortfolioModule />
+            )}
+
+            {activeTab === 'partners' && (
+              <div className="grid lg:grid-cols-12 gap-12">
+                <div className="lg:col-span-4">
+                  <div className="bg-white/5 border border-white/10 p-10 rounded-[40px] sticky top-12 backdrop-blur-xl">
+                    <h3 className="text-2xl font-black mb-8 flex items-center gap-3 uppercase italic">
+                      {editingId ? <Edit size={24} className="text-movie-red" /> : <Plus size={24} className="text-movie-red" />}
+                      {editingId ? 'Editar Partner' : 'Nuevo Partner'}
+                    </h3>
+                    <form onSubmit={handlePartnerSubmit} className="space-y-6">
+                      <input required type="text" placeholder="Nombre de la empresa" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-movie-red focus:outline-none" value={partnerForm.name} onChange={(e) => setPartnerForm({ ...partnerForm, name: e.target.value })} />
+                      <input required type="url" placeholder="URL del logo PNG/SVG" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-movie-red focus:outline-none" value={partnerForm.logo_url} onChange={(e) => setPartnerForm({ ...partnerForm, logo_url: e.target.value })} />
+                      <input type="url" placeholder="Sitio web" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-movie-red focus:outline-none" value={partnerForm.website_url} onChange={(e) => setPartnerForm({ ...partnerForm, website_url: e.target.value })} />
+                      <label className="flex items-center justify-between gap-4 bg-black/40 border border-white/10 rounded-2xl px-5 py-4 cursor-pointer">
+                        <span className="text-xs font-bold uppercase tracking-widest">Visible en marquee</span>
+                        <input type="checkbox" className="w-5 h-5 accent-movie-red" checked={partnerForm.featured} onChange={(e) => setPartnerForm({ ...partnerForm, featured: e.target.checked })} />
+                      </label>
+                      <div className="flex gap-4">
+                        {editingId && <button type="button" onClick={() => { setEditingId(null); setPartnerForm({ name: '', logo_url: '', website_url: '', featured: true }); }} className="flex-1 bg-white/5 hover:bg-white/10 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px]">Cancelar</button>}
+                        <button type="submit" disabled={isSubmitting} className="flex-[2] bg-movie-red hover:bg-red-700 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 disabled:opacity-50">
+                          <Save size={18} /> Guardar Logo
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+                <div className="lg:col-span-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {partners.map((item) => (
+                      <div key={item.id} className="bg-white/5 border border-white/10 p-8 rounded-[32px] group">
+                        <div className="h-24 bg-black/40 rounded-2xl border border-white/10 flex items-center justify-center mb-6 overflow-hidden">
+                          <img src={item.logo_url} alt={item.name} className="max-h-16 max-w-[80%] object-contain grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+                        </div>
+                        <div className="flex justify-between items-start gap-4">
+                          <div>
+                            <h4 className="font-black text-lg uppercase">{item.name}</h4>
+                            <p className="text-[10px] text-white/40 truncate max-w-xs">{item.website_url || 'Sin enlace'}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => startEdit(item, 'partners')} className="p-3 text-white/30 hover:text-white hover:bg-white/10 rounded-xl"><Edit size={18} /></button>
+                            <button onClick={() => handleDelete('partners', item.id)} className="p-3 text-white/30 hover:text-movie-red hover:bg-movie-red/10 rounded-xl"><Trash2 size={18} /></button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* CONTROL AUDIOVISUAL */}
@@ -2391,6 +2480,7 @@ const AdminDashboard: React.FC = () => {
                         onChange={(e) => setPricingForm({...pricingForm, category: e.target.value})}
                       >
                         <option value="social">Social Media</option>
+                        <option value="estrategia">Tráfico & Performance</option>
                         <option value="web">Desarrollo Web</option>
                       </select>
                     </div>

@@ -19,11 +19,12 @@ export interface PortfolioItem {
   media_source: 'native' | 'youtube' | 'vimeo' | 'instagram';
   media_url: string;
   thumbnail_url: string;
+  views?: number;
+  likes?: number;
+  display_order?: number;
   image_url?: string;
   video_url?: string;
   created_at?: string;
-  views?: number;
-  likes?: number;
 }
 
 const VISUAL_PRESETS = [
@@ -114,6 +115,9 @@ export function PortfolioModule() {
     media_source: 'native' | 'youtube' | 'vimeo' | 'instagram';
     media_url: string;
     thumbnail_url: string;
+    views: string;
+    likes: string;
+    display_order: string;
   }>({
     title: '',
     description: '',
@@ -122,6 +126,9 @@ export function PortfolioModule() {
     media_source: 'youtube',
     media_url: '',
     thumbnail_url: '',
+    views: '',
+    likes: '',
+    display_order: '0',
   });
 
   useEffect(() => {
@@ -151,7 +158,10 @@ export function PortfolioModule() {
       category: 'cinema',
       media_source: 'youtube',
       media_url: '',
-      thumbnail_url: VISUAL_PRESETS[0]
+      thumbnail_url: VISUAL_PRESETS[0],
+      views: '',
+      likes: '',
+      display_order: '0'
     });
     setIsModalOpen(true);
     setStatusMsg(null);
@@ -170,7 +180,10 @@ export function PortfolioModule() {
       category: item.category ?? 'cinema',
       media_source: item.media_source ?? 'youtube',
       media_url: item.media_url ?? item.video_url ?? '',
-      thumbnail_url: item.thumbnail_url ?? item.image_url ?? ''
+      thumbnail_url: item.thumbnail_url ?? item.image_url ?? '',
+      views: String(item.views ?? ''),
+      likes: String(item.likes ?? ''),
+      display_order: String(item.display_order ?? 0)
     });
     setIsModalOpen(true);
     setStatusMsg(null);
@@ -205,7 +218,12 @@ export function PortfolioModule() {
     }
 
     try {
-      const payload = { ...formState };
+      const payload: any = {
+        ...formState,
+        views: Number(formState.views) || 0,
+        likes: Number(formState.likes) || 0,
+        display_order: Number(formState.display_order) || 0
+      };
 
       if (coverFile) {
         const upload = await adminService.uploadAsset(coverFile, token);
@@ -664,6 +682,21 @@ export function PortfolioModule() {
                        onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
                        className="w-full bg-white/5 border border-white/10 focus:border-movie-red rounded-xl p-4 text-xs text-white focus:outline-none transition-all resize-none"
                      />
+                   </div>
+
+                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                     <div>
+                       <label className="block text-[10px] font-black uppercase tracking-widest text-white/50 mb-2">Visualizaciones</label>
+                       <input type="number" min="0" value={formState.views} onChange={(e) => setFormState(prev => ({ ...prev, views: e.target.value }))} className="w-full bg-white/5 border border-white/10 focus:border-movie-red rounded-xl px-4 py-3 text-xs text-white focus:outline-none" />
+                     </div>
+                     <div>
+                       <label className="block text-[10px] font-black uppercase tracking-widest text-white/50 mb-2">Likes</label>
+                       <input type="number" min="0" value={formState.likes} onChange={(e) => setFormState(prev => ({ ...prev, likes: e.target.value }))} className="w-full bg-white/5 border border-white/10 focus:border-movie-red rounded-xl px-4 py-3 text-xs text-white focus:outline-none" />
+                     </div>
+                     <div>
+                       <label className="block text-[10px] font-black uppercase tracking-widest text-white/50 mb-2">Orden</label>
+                       <input type="number" value={formState.display_order} onChange={(e) => setFormState(prev => ({ ...prev, display_order: e.target.value }))} className="w-full bg-white/5 border border-white/10 focus:border-movie-red rounded-xl px-4 py-3 text-xs text-white focus:outline-none" />
+                     </div>
                    </div>
 
                    {/* Media URL & Source */}

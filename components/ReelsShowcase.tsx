@@ -1,0 +1,156 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Heart, Play, TrendingUp, X } from 'lucide-react';
+
+type Reel = {
+  id: number;
+  title: string;
+  description?: string;
+  media_url?: string;
+  video_url?: string;
+  thumbnail_url?: string;
+  image_url?: string;
+  views?: number;
+  likes?: number;
+  category?: string;
+  format_type?: string;
+};
+
+const FALLBACK_REELS: Reel[] = [
+  { id: -1, title: 'Reel Cinemático', media_url: 'https://videos.pexels.com/video-files/5896379/5896379-sd_540_960_24fps.mp4', views: 18400, likes: 920 },
+  { id: -2, title: 'Vertical Branding', media_url: 'https://videos.pexels.com/video-files/6981410/6981410-sd_540_960_25fps.mp4', views: 32100, likes: 1800 },
+  { id: -3, title: 'Social Impact', media_url: 'https://videos.pexels.com/video-files/5309381/5309381-sd_540_960_25fps.mp4', views: 12900, likes: 640 }
+];
+
+function formatMetric(value?: number) {
+  const n = Number(value) || 0;
+  if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(n);
+}
+
+function ReelCard({ reel, onOpen }: { reel: Reel; onOpen: (reel: Reel) => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const src = reel.media_url || reel.video_url || '';
+  const poster = reel.thumbnail_url || reel.image_url || '';
+
+  return (
+    <motion.button
+      type="button"
+      whileHover={{ y: -8 }}
+      onMouseEnter={() => videoRef.current?.play().catch(() => {})}
+      onMouseLeave={() => {
+        if (videoRef.current) {
+          videoRef.current.pause();
+          videoRef.current.currentTime = 0;
+        }
+      }}
+      onClick={() => onOpen(reel)}
+      className="group shrink-0 w-[190px] sm:w-[230px] md:w-[260px] aspect-[9/16] rounded-[28px] overflow-hidden relative bg-neutral-950 border border-white/10 shadow-2xl text-left"
+    >
+      <video
+        ref={videoRef}
+        src={src}
+        poster={poster}
+        muted
+        playsInline
+        preload="metadata"
+        className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover:opacity-100 transition-opacity"
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 w-16 h-1 rounded-full bg-white/30" />
+      <div className="absolute bottom-5 left-5 right-5">
+        <div className="w-10 h-10 rounded-full bg-movie-red flex items-center justify-center mb-4 shadow-[0_0_24px_rgba(176,35,46,0.5)]">
+          <Play size={15} className="fill-white text-white ml-0.5" />
+        </div>
+        <h3 className="text-white text-base font-black uppercase leading-tight">{reel.title}</h3>
+        <div className="mt-3 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-white/70">
+          <span className="inline-flex items-center gap-1"><TrendingUp size={12} /> {formatMetric(reel.views)}</span>
+          <span className="inline-flex items-center gap-1"><Heart size={12} /> {formatMetric(reel.likes)}</span>
+        </div>
+      </div>
+    </motion.button>
+  );
+}
+
+export default function ReelsShowcase() {
+  const [items, setItems] = useState<Reel[]>(FALLBACK_REELS);
+  const [selected, setSelected] = useState<Reel | null>(null);
+
+  useEffect(() => {
+    fetch('/api/portfolio')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!Array.isArray(data)) return;
+        const reels = data.filter((item) => item.category === 'reels' || item.format_type === 'vertical');
+        if (reels.length > 0) setItems(reels);
+      })
+      .catch(() => setItems(FALLBACK_REELS));
+  }, []);
+
+  const visible = useMemo(() => items.filter((item) => item.media_url || item.video_url), [items]);
+
+  if (visible.length === 0) return null;
+
+  return (
+    <section className="relative z-20 py-20 overflow-hidden bg-[#050505] border-y border-white/5">
+      <div className="container mx-auto px-6 mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <p className="text-movie-red text-xs uppercase tracking-[0.35em] font-black mb-3">Impacto vertical</p>
+          <h2 className="text-4xl md:text-6xl font-heading font-black uppercase tracking-tighter">Reels que detienen el scroll</h2>
+        </div>
+        <p className="text-white/50 max-w-sm text-sm leading-relaxed">
+          Piezas 9:16 conectadas desde el portafolio. Hover para previsualizar, clic para ver en modo inmersivo.
+        </p>
+      </div>
+
+      <div className="overflow-x-auto no-scrollbar px-6 pb-4">
+        <div className="flex gap-5 w-max mx-auto">
+          {visible.map((reel) => (
+            <React.Fragment key={reel.id}>
+              <ReelCard reel={reel} onOpen={setSelected} />
+            </React.Fragment>
+          ))}
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {selected && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
+          >
+            <button
+              onClick={() => setSelected(null)}
+              className="absolute top-5 right-5 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white z-20"
+              aria-label="Cerrar reel"
+            >
+              <X size={22} />
+            </button>
+            <motion.div
+              initial={{ scale: 0.92, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.92, y: 20 }}
+              className="relative h-[88vh] aspect-[9/16] max-w-[92vw] rounded-[32px] overflow-hidden border border-white/10 bg-neutral-950 shadow-2xl"
+            >
+              <video
+                src={selected.media_url || selected.video_url}
+                poster={selected.thumbnail_url || selected.image_url}
+                autoPlay
+                controls
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 to-transparent pointer-events-none">
+                <h3 className="text-xl font-black uppercase">{selected.title}</h3>
+                <p className="text-white/60 text-sm mt-1">{selected.description}</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
+  );
+}
