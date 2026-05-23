@@ -446,6 +446,15 @@ async function startServer() {
         status TEXT DEFAULT 'pending',
         next_billing TEXT,
         auto_renew BOOLEAN DEFAULT TRUE,
+        start_date TEXT,
+        end_date TEXT,
+        billing_cycle TEXT DEFAULT 'monthly',
+        expected_cost_usd NUMERIC DEFAULT 0,
+        reinvest_percent NUMERIC DEFAULT 20,
+        savings_percent NUMERIC DEFAULT 10,
+        payroll_percent NUMERIC DEFAULT 30,
+        owner_profit_percent NUMERIC DEFAULT 40,
+        notes TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -456,6 +465,27 @@ async function startServer() {
         type TEXT DEFAULT 'income',
         amount_usd NUMERIC DEFAULT 0,
         category TEXT,
+        scope TEXT DEFAULT 'company',
+        payment_method TEXT DEFAULT '',
+        work_type TEXT DEFAULT '',
+        notes TEXT DEFAULT '',
+        collaborator_id INTEGER,
+        project_id INTEGER,
+        contract_id INTEGER,
+        activity_date TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS team_members (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        role TEXT DEFAULT '',
+        email TEXT DEFAULT '',
+        phone TEXT DEFAULT '',
+        rate_usd NUMERIC DEFAULT 0,
+        rate_cycle TEXT DEFAULT 'project',
+        active BOOLEAN DEFAULT TRUE,
+        notes TEXT DEFAULT '',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -478,6 +508,10 @@ async function startServer() {
       ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS service TEXT DEFAULT '';
       ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
       ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS origin TEXT DEFAULT 'Formulario Web';
+      ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS contract_start TEXT;
+      ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS contract_end TEXT;
+      ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS service_value NUMERIC DEFAULT 0;
+      ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS billing_cycle TEXT DEFAULT 'unique';
     `);
 
     // Ensure portfolio extensions are loaded
@@ -486,6 +520,44 @@ async function startServer() {
       ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS media_source TEXT DEFAULT 'native';
       ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS media_url TEXT DEFAULT '';
       ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS thumbnail_url TEXT DEFAULT '';
+      ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';
+      ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS video_url TEXT DEFAULT '';
+      ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS views INTEGER DEFAULT 0;
+      ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0;
+      ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
+      ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS click_count INTEGER DEFAULT 0;
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS portfolio_assets (
+        id SERIAL PRIMARY KEY,
+        filename TEXT NOT NULL,
+        content_type TEXT NOT NULL,
+        size_bytes INTEGER NOT NULL,
+        data BYTEA NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `);
+
+    await pool.query(`
+      ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS start_date TEXT;
+      ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS end_date TEXT;
+      ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS billing_cycle TEXT DEFAULT 'monthly';
+      ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS expected_cost_usd NUMERIC DEFAULT 0;
+      ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS reinvest_percent NUMERIC DEFAULT 20;
+      ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS savings_percent NUMERIC DEFAULT 10;
+      ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS payroll_percent NUMERIC DEFAULT 30;
+      ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS owner_profit_percent NUMERIC DEFAULT 40;
+      ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
+
+      ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS scope TEXT DEFAULT 'company';
+      ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT '';
+      ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS work_type TEXT DEFAULT '';
+      ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
+      ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS collaborator_id INTEGER;
+      ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS project_id INTEGER;
+      ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS contract_id INTEGER;
+      ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS activity_date TEXT;
     `);
 
     console.log("📋 PostgreSQL Database successfully connected, structures verified, tables migrated!");
@@ -545,7 +617,7 @@ async function startServer() {
     allowedHeaders: ['Content-Type', 'Authorization']
   }));
 
-  app.use(express.json());
+  app.use(express.json({ limit: "8mb" }));
 
   // --- INPUT SANITIZATION MIDDLEWARE ---
   function sanitizeInput(data: any): any {
@@ -659,7 +731,7 @@ async function startServer() {
   // Portfolio Rest API
   app.get("/api/portfolio", async (req, res) => {
     try {
-      const result = await pool.query("SELECT * FROM portfolio ORDER BY created_at DESC");
+      const result = await pool.query("SELECT * FROM portfolio ORDER BY display_order ASC, created_at DESC, id DESC");
       res.json(result.rows);
     } catch (err) {
       console.error("Failed to fetch portfolio from real DB:", err);
@@ -677,7 +749,10 @@ async function startServer() {
       media_url, 
       thumbnail_url,
       image_url,
-      video_url
+      video_url,
+      views,
+      likes,
+      display_order
     } = req.body;
 
     const final_format_type = format_type || "horizontal";
@@ -692,8 +767,8 @@ async function startServer() {
     try {
       const result = await pool.query(
         `INSERT INTO portfolio 
-          (title, category, description, format_type, media_source, media_url, thumbnail_url, image_url, video_url) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+          (title, category, description, format_type, media_source, media_url, thumbnail_url, image_url, video_url, views, likes, display_order) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) 
          RETURNING *`,
         [
           title || "Proyecto sin título", 
@@ -704,7 +779,10 @@ async function startServer() {
           final_media_url_clean, 
           final_thumbnail_url,
           final_thumbnail_url, // fill backward compatibility image_url column
-          final_media_url_clean // fill backward compatibility video_url column
+          final_media_url_clean, // fill backward compatibility video_url column
+          Number(views) || 0,
+          Number(likes) || 0,
+          Number(display_order) || 0
         ]
       );
       res.json(result.rows[0]);
@@ -733,7 +811,10 @@ async function startServer() {
       media_url, 
       thumbnail_url,
       image_url,
-      video_url
+      video_url,
+      views,
+      likes,
+      display_order
     } = req.body;
 
     const final_format_type = format_type || "horizontal";
@@ -756,8 +837,11 @@ async function startServer() {
           media_url = $6, 
           thumbnail_url = $7,
           image_url = $8,
-          video_url = $9
-         WHERE id = $10 
+          video_url = $9,
+          views = $10,
+          likes = $11,
+          display_order = $12
+         WHERE id = $13 
          RETURNING *`,
         [
           title, 
@@ -769,6 +853,9 @@ async function startServer() {
           final_thumbnail_url,
           final_thumbnail_url,
           final_media_url_clean,
+          Number(views) || 0,
+          Number(likes) || 0,
+          Number(display_order) || 0,
           req.params.id
         ]
       );
@@ -1120,11 +1207,14 @@ async function startServer() {
   });
 
   app.post("/api/admin-crm", authenticateToken, async (req, res) => {
-    const { name, email, phone, status, value, tag, reminder } = req.body;
+    const { name, email, phone, status, value, tag, reminder, service, contractStart, contractEnd, serviceValue, billingCycle } = req.body;
     try {
       const result = await pool.query(
-         "INSERT INTO admin_crm_clients (name, email, phone, status, value, tag, reminder) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
-         [name, email, phone, status, value, tag, reminder || null]
+         `INSERT INTO admin_crm_clients
+          (name, email, phone, status, value, tag, reminder, service, contract_start, contract_end, service_value, billing_cycle)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          RETURNING *`,
+         [name, email, phone, status, value, tag, reminder || null, service || '', contractStart || null, contractEnd || null, Number(serviceValue || value) || 0, billingCycle || 'unique']
       );
       res.json(result.rows[0]);
     } catch (err) {
@@ -1133,11 +1223,15 @@ async function startServer() {
   });
 
   app.put("/api/admin-crm/:id", authenticateToken, async (req, res) => {
-    const { name, email, phone, status, value, tag, reminder } = req.body;
+    const { name, email, phone, status, value, tag, reminder, service, contractStart, contractEnd, serviceValue, billingCycle } = req.body;
     try {
       const result = await pool.query(
-        "UPDATE admin_crm_clients SET name=$1, email=$2, phone=$3, status=$4, value=$5, tag=$6, reminder=$7 WHERE id=$8 RETURNING *",
-        [name, email, phone, status, value, tag, reminder || null, req.params.id]
+        `UPDATE admin_crm_clients
+         SET name=$1, email=$2, phone=$3, status=$4, value=$5, tag=$6, reminder=$7,
+             service=$8, contract_start=$9, contract_end=$10, service_value=$11, billing_cycle=$12
+         WHERE id=$13
+         RETURNING *`,
+        [name, email, phone, status, value, tag, reminder || null, service || '', contractStart || null, contractEnd || null, Number(serviceValue || value) || 0, billingCycle || 'unique', req.params.id]
       );
       if (result.rows.length === 0) return res.status(404).json({ error: "CRM Client not found" });
       res.json(result.rows[0]);
@@ -1227,7 +1321,57 @@ async function startServer() {
     }
   });
 
-  app.post("/api/assets/upload", authenticateToken, (req, res) => {
+  app.get("/api/assets/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: "Asset id invalido" });
+
+    try {
+      const result = await pool.query("SELECT filename, content_type, data FROM portfolio_assets WHERE id = $1", [id]);
+      const asset = result.rows[0];
+      if (!asset) return res.status(404).json({ error: "Asset no encontrado" });
+
+      res.setHeader("Content-Type", asset.content_type);
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader("Content-Disposition", `inline; filename="${asset.filename}"`);
+      return res.send(asset.data);
+    } catch (err) {
+      console.error("GET /api/assets/:id error:", err);
+      return res.status(500).json({ error: "No se pudo cargar el asset" });
+    }
+  });
+
+  app.post("/api/assets/upload", authenticateToken, async (req, res) => {
+    if (req.is("application/json")) {
+      try {
+        const { filename, contentType, data } = req.body || {};
+        if (!filename || !contentType || !data) return res.status(400).json({ error: "Datos de archivo incompletos" });
+        if (!String(contentType).startsWith("image/") && !String(contentType).startsWith("video/")) {
+          return res.status(400).json({ error: "Solo se admiten imagenes y videos" });
+        }
+
+        const buffer = Buffer.from(String(data), "base64");
+        const maxBytes = 4 * 1024 * 1024;
+        if (buffer.length > maxBytes) {
+          return res.status(413).json({ error: "El archivo supera el limite de 4 MB para publicacion directa." });
+        }
+
+        const result = await pool.query(
+          "INSERT INTO portfolio_assets (filename, content_type, size_bytes, data) VALUES ($1, $2, $3, $4) RETURNING id",
+          [String(filename), String(contentType), buffer.length, buffer]
+        );
+
+        return res.status(201).json({
+          id: result.rows[0].id,
+          url: `/api/assets/${result.rows[0].id}`,
+          contentType,
+          size: buffer.length
+        });
+      } catch (err) {
+        console.error("JSON asset upload error:", err);
+        return res.status(500).json({ error: "No se pudo subir el archivo" });
+      }
+    }
+
     upload.single("file")(req, res, (err) => {
       if (err) {
         return res.status(400).json({ error: err.message || "Error al subir archivo" });
@@ -1524,7 +1668,16 @@ async function startServer() {
           value_usd AS "valueUSD", 
           status, 
           next_billing AS "nextBilling", 
-          auto_renew AS "autoRenew" 
+          auto_renew AS "autoRenew",
+          start_date AS "startDate",
+          end_date AS "endDate",
+          billing_cycle AS "billingCycle",
+          expected_cost_usd AS "expectedCostUSD",
+          reinvest_percent AS "reinvestPercent",
+          savings_percent AS "savingsPercent",
+          payroll_percent AS "payrollPercent",
+          owner_profit_percent AS "ownerProfitPercent",
+          notes
         FROM admin_contracts 
         ORDER BY id DESC
       `);
@@ -1535,13 +1688,19 @@ async function startServer() {
   });
 
   app.post("/api/finance/contracts", authenticateToken, async (req, res) => {
-    const { client, service, valueUSD, status, nextBilling, autoRenew } = req.body;
+    const { client, service, valueUSD, status, nextBilling, autoRenew, startDate, endDate, billingCycle, expectedCostUSD, reinvestPercent, savingsPercent, payrollPercent, ownerProfitPercent, notes } = req.body;
     try {
       const result = await pool.query(`
-        INSERT INTO admin_contracts (client, service, value_usd, status, next_billing, auto_renew)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING id, client, service, value_usd AS "valueUSD", status, next_billing AS "nextBilling", auto_renew AS "autoRenew"
-      `, [client, service, Number(valueUSD) || 0, status || 'pending', nextBilling, autoRenew !== false]);
+        INSERT INTO admin_contracts
+          (client, service, value_usd, status, next_billing, auto_renew, start_date, end_date, billing_cycle, expected_cost_usd, reinvest_percent, savings_percent, payroll_percent, owner_profit_percent, notes)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+        RETURNING id, client, service, value_usd AS "valueUSD", status,
+          next_billing AS "nextBilling", auto_renew AS "autoRenew",
+          start_date AS "startDate", end_date AS "endDate", billing_cycle AS "billingCycle",
+          expected_cost_usd AS "expectedCostUSD", reinvest_percent AS "reinvestPercent",
+          savings_percent AS "savingsPercent", payroll_percent AS "payrollPercent",
+          owner_profit_percent AS "ownerProfitPercent", notes
+      `, [client, service, Number(valueUSD) || 0, status || 'pending', nextBilling, autoRenew !== false, startDate || '', endDate || '', billingCycle || 'monthly', Number(expectedCostUSD) || 0, Number(reinvestPercent) || 20, Number(savingsPercent) || 10, Number(payrollPercent) || 30, Number(ownerProfitPercent) || 40, notes || '']);
       res.json(result.rows[0]);
     } catch (err) {
       res.status(500).json({ error: "Failed to create contract" });
@@ -1589,9 +1748,13 @@ async function startServer() {
   app.get("/api/finance/transactions", authenticateToken, async (req, res) => {
     try {
       const result = await pool.query(`
-        SELECT id, date, description, type, amount_usd AS "amountUSD", category
-        FROM admin_transactions
-        ORDER BY id DESC
+        SELECT t.id, t.date, t.description, t.type, t.amount_usd AS "amountUSD", t.category,
+          t.scope, t.payment_method AS "paymentMethod", t.work_type AS "workType", t.notes,
+          t.collaborator_id AS "collaboratorId", tm.name AS "collaboratorName",
+          t.project_id AS "projectId", t.contract_id AS "contractId", t.activity_date AS "activityDate"
+        FROM admin_transactions t
+        LEFT JOIN team_members tm ON tm.id = t.collaborator_id
+        ORDER BY t.id DESC
       `);
       res.json(result.rows);
     } catch (err) {
@@ -1600,16 +1763,52 @@ async function startServer() {
   });
 
   app.post("/api/finance/transactions", authenticateToken, async (req, res) => {
-    const { date, description, type, amountUSD, category } = req.body;
+    const { date, description, type, amountUSD, category, scope, paymentMethod, workType, notes, collaboratorId, projectId, contractId, activityDate } = req.body;
     try {
       const result = await pool.query(`
-        INSERT INTO admin_transactions (date, description, type, amount_usd, category)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, date, description, type, amount_usd AS "amountUSD", category
-      `, [date, description, type, Number(amountUSD) || 0, category]);
+        INSERT INTO admin_transactions
+          (date, description, type, amount_usd, category, scope, payment_method, work_type, notes, collaborator_id, project_id, contract_id, activity_date)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        RETURNING id, date, description, type, amount_usd AS "amountUSD", category,
+          scope, payment_method AS "paymentMethod", work_type AS "workType", notes,
+          collaborator_id AS "collaboratorId", project_id AS "projectId", contract_id AS "contractId", activity_date AS "activityDate"
+      `, [date || new Date().toISOString().split('T')[0], description, type, Number(amountUSD) || 0, category, scope || 'company', paymentMethod || '', workType || '', notes || '', collaboratorId || null, projectId || null, contractId || null, activityDate || date || new Date().toISOString().split('T')[0]]);
       res.json(result.rows[0]);
     } catch (err) {
       res.status(500).json({ error: "Failed to create transaction" });
+    }
+  });
+
+  app.get("/api/team-members", authenticateToken, async (req, res) => {
+    try {
+      const result = await pool.query("SELECT * FROM team_members ORDER BY active DESC, created_at DESC, id DESC");
+      res.json(result.rows);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch team members" });
+    }
+  });
+
+  app.post("/api/team-members", authenticateToken, async (req, res) => {
+    const { name, role, email, phone, rateUSD, rateCycle, active, notes } = req.body;
+    if (!name || !role) return res.status(400).json({ error: "Name and role are required" });
+    try {
+      const result = await pool.query(`
+        INSERT INTO team_members (name, role, email, phone, rate_usd, rate_cycle, active, notes)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING *
+      `, [name, role, email || '', phone || '', Number(rateUSD) || 0, rateCycle || 'project', active !== false, notes || '']);
+      res.json(result.rows[0]);
+    } catch (err) {
+      res.status(500).json({ error: "Failed to create team member" });
+    }
+  });
+
+  app.delete("/api/team-members/:id", authenticateToken, async (req, res) => {
+    try {
+      await pool.query("DELETE FROM team_members WHERE id = $1", [req.params.id]);
+      res.json({ message: "Deleted" });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to delete team member" });
     }
   });
 

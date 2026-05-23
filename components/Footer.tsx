@@ -3,8 +3,12 @@ import React from 'react';
 import { Instagram, Facebook, Globe, Video, ExternalLink, ArrowRight, Send, Mail, MessageCircle, Star, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-const Footer: React.FC = () => {
+const Footer: React.FC<{ siteSettings?: any; whatsappNumber?: string }> = ({ siteSettings, whatsappNumber = '573017355046' }) => {
   const navigate = useNavigate();
+  const brand = siteSettings?.brand || {};
+  const footerLogoUrl = brand.footer_logo_url || brand.header_logo_url || '';
+  const ctaText = brand.footer_cta_text || 'HACER HISTORIA JUNTOS';
+  const ctaUrl = brand.footer_cta_url || `https://wa.me/${whatsappNumber}`;
 
   const handleNavAndScroll = (path: string, elementId?: string) => {
     if (elementId) {
@@ -30,13 +34,16 @@ const Footer: React.FC = () => {
                 <h2 className="text-5xl md:text-7xl font-heading font-black mb-6 uppercase tracking-tighter">
                     ¿Creamos algo <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-movie-red to-purple-600">Legendario?</span>
                 </h2>
+                {footerLogoUrl && (
+                    <img src={footerLogoUrl} alt={brand.header_name || 'LA MOVIE'} className="h-14 max-w-[220px] object-contain mb-8" />
+                )}
                 <a 
-                    href="https://wa.me/573017355046" 
+                    href={ctaUrl} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="group inline-flex items-center gap-4 text-xl font-bold uppercase tracking-widest border-b-2 border-movie-red pb-1 hover:text-movie-red transition-colors"
                 >
-                    HACER HISTORIA JUNTOS <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
+                    {ctaText} <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
                 </a>
             </div>
 
@@ -103,7 +110,7 @@ const Footer: React.FC = () => {
                      <Instagram size={18} />
                  </a>
                  <a 
-                    href="https://wa.me/573017355046" 
+                    href={`https://wa.me/${whatsappNumber}`} 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-green-500 hover:text-white transition-all"

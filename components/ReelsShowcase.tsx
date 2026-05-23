@@ -33,30 +33,35 @@ function ReelCard({ reel, onOpen }: { reel: Reel; onOpen: (reel: Reel) => void }
   const videoRef = useRef<HTMLVideoElement>(null);
   const src = reel.media_url || reel.video_url || '';
   const poster = reel.thumbnail_url || reel.image_url || '';
+  const isFrameSource = /youtube\.com\/embed|player\.vimeo\.com|instagram\.com\/.*\/embed/.test(src);
 
   return (
     <motion.button
       type="button"
       whileHover={{ y: -8 }}
-      onMouseEnter={() => videoRef.current?.play().catch(() => {})}
-      onMouseLeave={() => {
-        if (videoRef.current) {
-          videoRef.current.pause();
-          videoRef.current.currentTime = 0;
-        }
-      }}
       onClick={() => onOpen(reel)}
       className="group shrink-0 w-[190px] sm:w-[230px] md:w-[260px] aspect-[9/16] rounded-[28px] overflow-hidden relative bg-neutral-950 border border-white/10 shadow-2xl text-left"
     >
-      <video
-        ref={videoRef}
-        src={src}
-        poster={poster}
-        muted
-        playsInline
-        preload="metadata"
-        className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover:opacity-100 transition-opacity"
-      />
+      {isFrameSource ? (
+        <iframe
+          src={src}
+          title={reel.title}
+          allow="autoplay; encrypted-media; picture-in-picture"
+          className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover:opacity-100 transition-opacity pointer-events-none"
+        />
+      ) : (
+        <video
+          ref={videoRef}
+          src={src}
+          poster={poster}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover:opacity-100 transition-opacity"
+        />
+      )}
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
       <div className="absolute top-3 left-1/2 -translate-x-1/2 w-16 h-1 rounded-full bg-white/30" />
       <div className="absolute bottom-5 left-5 right-5">
@@ -100,7 +105,7 @@ export default function ReelsShowcase() {
           <h2 className="text-4xl md:text-6xl font-heading font-black uppercase tracking-tighter">Reels que detienen el scroll</h2>
         </div>
         <p className="text-white/50 max-w-sm text-sm leading-relaxed">
-          Piezas 9:16 conectadas desde el portafolio. Hover para previsualizar, clic para ver en modo inmersivo.
+          Piezas 9:16 conectadas desde el portafolio, reproduciendose en formato corto automatico.
         </p>
       </div>
 
@@ -135,14 +140,24 @@ export default function ReelsShowcase() {
               exit={{ scale: 0.92, y: 20 }}
               className="relative h-[88vh] aspect-[9/16] max-w-[92vw] rounded-[32px] overflow-hidden border border-white/10 bg-neutral-950 shadow-2xl"
             >
-              <video
-                src={selected.media_url || selected.video_url}
-                poster={selected.thumbnail_url || selected.image_url}
-                autoPlay
-                controls
-                playsInline
-                className="w-full h-full object-cover"
-              />
+              {/youtube\.com\/embed|player\.vimeo\.com|instagram\.com\/.*\/embed/.test(selected.media_url || selected.video_url || '') ? (
+                <iframe
+                  src={selected.media_url || selected.video_url}
+                  title={selected.title}
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                />
+              ) : (
+                <video
+                  src={selected.media_url || selected.video_url}
+                  poster={selected.thumbnail_url || selected.image_url}
+                  autoPlay
+                  controls
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+              )}
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 to-transparent pointer-events-none">
                 <h3 className="text-xl font-black uppercase">{selected.title}</h3>
                 <p className="text-white/60 text-sm mt-1">{selected.description}</p>

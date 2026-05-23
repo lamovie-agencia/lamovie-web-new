@@ -68,7 +68,7 @@ const ScrollToTop = () => {
 };
 
 // Main Layout Component (Header + Footer included)
-const Layout: React.FC<{ children: React.ReactNode, lang: 'es' | 'en', toggleLanguage: () => void, whatsappNumber?: string }> = ({ children, lang, toggleLanguage, whatsappNumber = '573017355046' }) => {
+const Layout: React.FC<{ children: React.ReactNode, lang: 'es' | 'en', toggleLanguage: () => void, whatsappNumber?: string, siteSettings?: any }> = ({ children, lang, toggleLanguage, whatsappNumber = '573017355046', siteSettings }) => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [lastScrollY, setLastScrollY] = useState(0);
     const [isVisible, setIsVisible] = useState(true);
@@ -77,6 +77,9 @@ const Layout: React.FC<{ children: React.ReactNode, lang: 'es' | 'en', toggleLan
     const navigate = useNavigate();
     const location = useLocation();
     const t = translations[lang];
+    const brand = siteSettings?.brand || {};
+    const headerLogoUrl = brand.header_logo_url || '';
+    const headerBrandName = brand.header_name || 'LA MOVIE';
 
     useEffect(() => {
         const handleScroll = () => {
@@ -119,10 +122,14 @@ const Layout: React.FC<{ children: React.ReactNode, lang: 'es' | 'en', toggleLan
                     
                     {/* Logo */}
                     <button onClick={() => handleNav('/')} className="text-xl md:text-2xl font-heading font-black tracking-tighter flex items-center gap-2 group">
-                      <div className="w-8 h-8 bg-movie-red rounded-lg flex items-center justify-center shadow-[0_0_20px_rgba(176,35,46,0.5)] group-hover:scale-110 transition-transform duration-300">
-                        <Video size={18} className="text-white" />
-                      </div>
-                      <span className="hidden sm:inline text-white">LA MOVIE</span>
+                      {headerLogoUrl ? (
+                        <img src={headerLogoUrl} alt={headerBrandName} className="h-9 max-w-[120px] object-contain group-hover:scale-105 transition-transform duration-300" />
+                      ) : (
+                        <div className="w-8 h-8 bg-movie-red rounded-lg flex items-center justify-center shadow-[0_0_20px_rgba(176,35,46,0.5)] group-hover:scale-110 transition-transform duration-300">
+                          <Video size={18} className="text-white" />
+                        </div>
+                      )}
+                      <span className="hidden sm:inline text-white">{headerBrandName}</span>
                     </button>
 
                     {/* Desktop Menu */}
@@ -316,7 +323,7 @@ const Layout: React.FC<{ children: React.ReactNode, lang: 'es' | 'en', toggleLan
                 {children}
             </main>
 
-            <Footer />
+            <Footer siteSettings={siteSettings} whatsappNumber={whatsappNumber} />
             
             {/* Scroll To Top */}
             <button
@@ -530,7 +537,7 @@ const App: React.FC = () => {
       <HashRouter>
           <Preloader isLoading={loading} />
           <ScrollToTop />
-          <Layout lang={lang} toggleLanguage={toggleLanguage} whatsappNumber={whatsappNumber}>
+          <Layout lang={lang} toggleLanguage={toggleLanguage} whatsappNumber={whatsappNumber} siteSettings={siteSettings}>
               <Routes>
                   <Route path="/" element={<ViralHome lang={lang} t={t} whatsappNumber={whatsappNumber} />} />
                   <Route path="/services" element={<ServicesPage whatsappNumber={whatsappNumber} />} />

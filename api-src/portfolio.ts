@@ -1,15 +1,10 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
+import { ensureCoreSchema, getPool } from '../lib/apiDb.js';
 
 interface AuthenticatedRequest extends VercelRequest {
   user?: { username: string; role: string; iat: number; exp: number };
 }
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
 
 function setCors(res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
@@ -32,47 +27,56 @@ function authenticateToken(req: AuthenticatedRequest): boolean {
   }
 }
 
-async function ensurePortfolioTable() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS portfolio (
-      id SERIAL PRIMARY KEY,
-      title TEXT NOT NULL,
-      category TEXT DEFAULT 'cinema',
-      description TEXT DEFAULT '',
-      format_type TEXT DEFAULT 'horizontal',
-      media_source TEXT DEFAULT 'native',
-      media_url TEXT DEFAULT '',
-      thumbnail_url TEXT DEFAULT '',
-      image_url TEXT DEFAULT '',
-      video_url TEXT DEFAULT '',
-      views INTEGER DEFAULT 0,
-      likes INTEGER DEFAULT 0,
-      display_order INTEGER DEFAULT 0,
-      click_count INTEGER DEFAULT 0,
-      created_at TIMESTAMP DEFAULT NOW()
-    )
-  `);
-  await pool.query(`
-    ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS views INTEGER DEFAULT 0;
-    ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0;
-    ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
-    ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS click_count INTEGER DEFAULT 0;
-  `);
-}
-
 function cleanPortfolioPayload(body: any) {
+  const mediaSource = String(body.media_source || 'native').trim();
+  const parsed = parsePortfolioUrl(String(body.media_url || body.video_url || '').trim(), mediaSource);
+  const thumbnailUrl = String(body.thumbnail_url || body.image_url || '').trim();
+
   return {
     title: String(body.title || '').trim(),
     category: String(body.category || 'cinema').trim(),
     description: String(body.description || '').trim(),
     format_type: String(body.format_type || 'horizontal').trim(),
-    media_source: String(body.media_source || 'native').trim(),
-    media_url: String(body.media_url || body.video_url || '').trim(),
-    thumbnail_url: String(body.thumbnail_url || body.image_url || '').trim(),
+    media_source: mediaSource,
+    media_url: parsed.cleanUrl,
+    thumbnail_url: thumbnailUrl,
     views: Number(body.views) || 0,
     likes: Number(body.likes) || 0,
     display_order: Number(body.display_order) || 0
   };
+}
+
+function parsePortfolioUrl(url: string, source: string): { cleanUrl: string; videoId: string } {
+  if (!url) return { cleanUrl: '', videoId: '' };
+  const trimmed = url.trim();
+  if (/<script|javascript:|onerror=|onload=/gi.test(trimmed)) return { cleanUrl: '', videoId: '' };
+
+  if (source === 'youtube') {
+    const match = trimmed.match(/(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([^"&?/ \s]{11})/);
+    if (match?.[1]) {
+      return {
+        cleanUrl: `https://www.youtube.com/embed/${match[1]}?autoplay=1&mute=1&loop=1&playlist=${match[1]}&controls=0&playsinline=1`,
+        videoId: match[1]
+      };
+    }
+  }
+
+  if (source === 'vimeo') {
+    const match = trimmed.match(/(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/);
+    if (match?.[1]) {
+      return {
+        cleanUrl: `https://player.vimeo.com/video/${match[1]}?autoplay=1&muted=1&loop=1&autopause=0&controls=0&background=1`,
+        videoId: match[1]
+      };
+    }
+  }
+
+  if (source === 'instagram') {
+    const match = trimmed.match(/(?:instagram\.com\/(?:p|reel|tv)\/)([A-Za-z0-9_-]+)/);
+    if (match?.[1]) return { cleanUrl: `https://www.instagram.com/reel/${match[1]}/embed`, videoId: match[1] };
+  }
+
+  return { cleanUrl: trimmed, videoId: trimmed };
 }
 
 function getIdFromUrl(req: VercelRequest): number | null {
@@ -91,7 +95,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    await ensurePortfolioTable();
+    await ensureCoreSchema();
+    const pool = getPool();
 
     if (req.method === 'GET') {
       const result = await pool.query('SELECT * FROM portfolio ORDER BY display_order ASC, created_at DESC, id DESC');

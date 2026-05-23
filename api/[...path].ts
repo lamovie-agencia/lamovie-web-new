@@ -31,6 +31,8 @@ import serviceItem from '../api-src/services/[id].js';
 import settings from '../api-src/settings.js';
 import testimonials from '../api-src/testimonials.js';
 import testimonialItem from '../api-src/testimonials/[id].js';
+import teamMembers from '../api-src/team-members.js';
+import teamMemberItem from '../api-src/team-members/[id].js';
 import v1AiLogs from '../api-src/v1/ai-logs.js';
 import webShowcase from '../api-src/web-showcase.js';
 import webShowcaseItem from '../api-src/web-showcase/[id].js';
@@ -61,6 +63,7 @@ const routeHandlers: Record<string, ApiHandler> = {
   'partners': partners,
   'partners/[id]': partnerItem,
   'portfolio': portfolio,
+  'portfolio/[id]': portfolio,
   'pricing': pricing,
   'pricing/[id]': pricingItem,
   'projects': projects,
@@ -70,6 +73,8 @@ const routeHandlers: Record<string, ApiHandler> = {
   'settings': settings,
   'testimonials': testimonials,
   'testimonials/[id]': testimonialItem,
+  'team-members': teamMembers,
+  'team-members/[id]': teamMemberItem,
   'v1/ai-logs': v1AiLogs,
   'web-showcase': webShowcase,
   'web-showcase/[id]': webShowcaseItem

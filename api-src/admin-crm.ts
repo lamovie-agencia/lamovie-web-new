@@ -21,12 +21,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (req.method === 'POST') {
-      const { name, email, phone, service, status, notes, value, tag, reminder, origin } = req.body || {};
+      const { name, email, phone, service, status, notes, value, tag, reminder, origin, contractStart, contractEnd, serviceValue, billingCycle } = req.body || {};
       if (!name) return res.status(400).json({ error: 'Name is required' });
 
       const result = await db.query(
-        `INSERT INTO admin_crm_clients (name, email, phone, service, status, notes, value, tag, reminder, origin)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        `INSERT INTO admin_crm_clients
+          (name, email, phone, service, status, notes, value, tag, reminder, origin, contract_start, contract_end, service_value, billing_cycle)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          RETURNING *, created_at AS date`,
         [
           name,
@@ -38,7 +39,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           Number(value) || 0,
           tag || '',
           reminder || null,
-          firstDefined(origin, 'Formulario Web')
+          firstDefined(origin, 'Formulario Web'),
+          contractStart || null,
+          contractEnd || null,
+          Number(serviceValue || value) || 0,
+          billingCycle || 'unique'
         ]
       );
       return res.status(201).json(result.rows[0]);

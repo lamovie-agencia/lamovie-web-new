@@ -77,14 +77,14 @@ export const adminService = {
   },
 
   deletePortfolio: async (id: number, token?: string) => {
-    const res = await secureFetch(`${API_URL}/portfolio?id=${id}`, {
+    const res = await secureFetch(`${API_URL}/portfolio/${id}`, {
       method: 'DELETE',
     }, token);
     return res.json();
   },
 
   updatePortfolio: async (id: number, data: any, token?: string) => {
-    const res = await secureFetch(`${API_URL}/portfolio?id=${id}`, {
+    const res = await secureFetch(`${API_URL}/portfolio/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -406,6 +406,34 @@ export const adminService = {
     return res.json();
   },
 
+  // Team
+  getTeamMembers: async (token?: string) => {
+    const res = await secureFetch(`${API_URL}/team-members`, {}, token);
+    return res.json();
+  },
+  createTeamMember: async (data: any, token?: string) => {
+    const res = await secureFetch(`${API_URL}/team-members`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }, token);
+    return res.json();
+  },
+  updateTeamMember: async (id: number, data: any, token?: string) => {
+    const res = await secureFetch(`${API_URL}/team-members/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }, token);
+    return res.json();
+  },
+  deleteTeamMember: async (id: number, token?: string) => {
+    const res = await secureFetch(`${API_URL}/team-members/${id}`, {
+      method: 'DELETE'
+    }, token);
+    return res.json();
+  },
+
   // Docs
   getDocuments: async (token?: string) => {
     const res = await secureFetch(`${API_URL}/docs/documents`, {}, token);
@@ -483,7 +511,7 @@ export const adminService = {
     return res.json();
   },
   updatePortfolioProject: async (id: number, data: any, token?: string) => {
-    const res = await secureFetch(`${API_URL}/portfolio?id=${id}`, {
+    const res = await secureFetch(`${API_URL}/portfolio/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -491,7 +519,7 @@ export const adminService = {
     return res.json();
   },
   deletePortfolioProject: async (id: number, token?: string) => {
-    const res = await secureFetch(`${API_URL}/portfolio?id=${id}`, {
+    const res = await secureFetch(`${API_URL}/portfolio/${id}`, {
       method: 'DELETE'
     }, token);
     return res.json();

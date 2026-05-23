@@ -147,7 +147,12 @@ const AdminDashboard: React.FC = () => {
     hero_copy: '',
     hero_badge: '',
     contact_email: '',
-    whatsapp_number: ''
+    whatsapp_number: '',
+    header_name: 'LA MOVIE',
+    header_logo_url: '',
+    footer_logo_url: '',
+    footer_cta_text: 'HACER HISTORIA JUNTOS',
+    footer_cta_url: ''
   });
 
   // Forms State
@@ -239,7 +244,8 @@ const AdminDashboard: React.FC = () => {
   const [crmOriginFilter, setCrmOriginFilter] = useState<string>('all');
   const [projectSubTab, setProjectSubTab] = useState<'overview' | 'list' | 'kanban' | 'timeline' | 'files'>('overview');
   const [crmForm, setCrmForm] = useState({
-    name: '', email: '', phone: '', status: 'prospect', value: '', tag: '', reminder: ''
+    name: '', email: '', phone: '', status: 'prospect', value: '', tag: '', reminder: '',
+    service: '', contractStart: '', contractEnd: '', serviceValue: '', billingCycle: 'unique'
   });
 
   const fetchData = useCallback(async () => {
@@ -286,14 +292,19 @@ const AdminDashboard: React.FC = () => {
         });
       }
 
-      if (settingsData && settingsData.hero) {
+      if (settingsData) {
         setSettingsForm({
-          hero_title: settingsData.hero.title || '',
-          hero_subtitle: settingsData.hero.subtitle || '',
-          hero_copy: settingsData.hero.copy || '',
-          hero_badge: settingsData.hero.badge || '',
+          hero_title: settingsData.hero?.title || '',
+          hero_subtitle: settingsData.hero?.subtitle || '',
+          hero_copy: settingsData.hero?.copy || '',
+          hero_badge: settingsData.hero?.badge || '',
           contact_email: settingsData.contact_email || '',
-          whatsapp_number: settingsData.whatsapp_number || ''
+          whatsapp_number: settingsData.whatsapp_number || '',
+          header_name: settingsData.brand?.header_name || 'LA MOVIE',
+          header_logo_url: settingsData.brand?.header_logo_url || '',
+          footer_logo_url: settingsData.brand?.footer_logo_url || '',
+          footer_cta_text: settingsData.brand?.footer_cta_text || 'HACER HISTORIA JUNTOS',
+          footer_cta_url: settingsData.brand?.footer_cta_url || ''
         });
       }
     } catch (err) {
@@ -544,6 +555,13 @@ const AdminDashboard: React.FC = () => {
         badge: settingsForm.hero_badge
       };
       await adminService.saveSettings('hero', heroValue, token);
+      await adminService.saveSettings('brand', {
+        header_name: settingsForm.header_name,
+        header_logo_url: settingsForm.header_logo_url,
+        footer_logo_url: settingsForm.footer_logo_url,
+        footer_cta_text: settingsForm.footer_cta_text,
+        footer_cta_url: settingsForm.footer_cta_url
+      }, token);
       await adminService.saveSettings('contact_email', settingsForm.contact_email, token);
       await adminService.saveSettings('whatsapp_number', settingsForm.whatsapp_number, token);
       alert('Configuración guardada correctamente');
@@ -606,7 +624,7 @@ const AdminDashboard: React.FC = () => {
       } else {
         await adminService.createCrmClient(crmForm, token);
       }
-      setCrmForm({ name: '', email: '', phone: '', status: 'prospect', value: '', tag: '', reminder: '' });
+      setCrmForm({ name: '', email: '', phone: '', status: 'prospect', value: '', tag: '', reminder: '', service: '', contractStart: '', contractEnd: '', serviceValue: '', billingCycle: 'unique' });
       fetchData();
     } catch (err) {
       alert('Error al guardar cliente CRM');
@@ -626,7 +644,12 @@ const AdminDashboard: React.FC = () => {
         status: newStatus,
         value: client.value || '',
         tag: client.tag || '',
-        reminder: client.reminder || ''
+        reminder: client.reminder || '',
+        service: client.service || '',
+        contractStart: client.contract_start || '',
+        contractEnd: client.contract_end || '',
+        serviceValue: client.service_value || client.value || '',
+        billingCycle: client.billing_cycle || 'unique'
       };
       await adminService.updateCrmClient(client.id, updatedPayload, currentToken);
       fetchData();
@@ -1361,12 +1384,27 @@ const AdminDashboard: React.FC = () => {
                           <input type="text" placeholder="Empresa / Nombre" required className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-400 focus:outline-none transition-colors" value={crmForm.name} onChange={e => setCrmForm({...crmForm, name: e.target.value})} />
                           <input type="email" placeholder="Correo Electrónico" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-400 focus:outline-none transition-colors" value={crmForm.email} onChange={e => setCrmForm({...crmForm, email: e.target.value})} />
                           <input type="text" placeholder="Teléfono / WhatsApp" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-400 focus:outline-none transition-colors" value={crmForm.phone} onChange={e => setCrmForm({...crmForm, phone: e.target.value})} />
+                          <input type="text" placeholder="Servicio contratado / interesado" required className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-400 focus:outline-none transition-colors" value={crmForm.service} onChange={e => setCrmForm({...crmForm, service: e.target.value})} />
                           <select className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-400 focus:outline-none transition-colors" value={crmForm.status} onChange={e => setCrmForm({...crmForm, status: e.target.value})}>
                             <option value="prospect">Lead / Prospecto</option>
                             <option value="active">Cliente Activo</option>
                             <option value="inactive">Inactivo</option>
                           </select>
                           <input type="number" placeholder="Valor Proyecto ($)" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-400 focus:outline-none transition-colors" value={crmForm.value} onChange={e => setCrmForm({...crmForm, value: e.target.value})} />
+                          <div className="grid grid-cols-2 gap-3">
+                            <input type="date" title="Inicio de contrato" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-400 focus:outline-none transition-colors [color-scheme:dark]" value={crmForm.contractStart} onChange={e => setCrmForm({...crmForm, contractStart: e.target.value})} />
+                            <input type="date" title="Fecha de cierre" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-400 focus:outline-none transition-colors [color-scheme:dark]" value={crmForm.contractEnd} onChange={e => setCrmForm({...crmForm, contractEnd: e.target.value})} />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <input type="number" min="0" placeholder="Valor servicio" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-400 focus:outline-none transition-colors" value={crmForm.serviceValue} onChange={e => setCrmForm({...crmForm, serviceValue: e.target.value})} />
+                            <select className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-400 focus:outline-none transition-colors" value={crmForm.billingCycle} onChange={e => setCrmForm({...crmForm, billingCycle: e.target.value})}>
+                              <option value="daily">Diario</option>
+                              <option value="monthly">Mensual</option>
+                              <option value="quarterly">Trimestral</option>
+                              <option value="annual">Anual</option>
+                              <option value="unique">Unico</option>
+                            </select>
+                          </div>
                           <div>
                             <label className="block text-[9px] uppercase tracking-[0.2em] text-white/50 mb-2 font-bold ml-2">Recordatorio IA (Opcional)</label>
                             <input type="datetime-local" className="w-full bg-black/40 border border-white/10 rounded-2xl px-5 py-4 text-white focus:border-blue-400 focus:outline-none transition-colors [color-scheme:dark]" value={crmForm.reminder} onChange={e => setCrmForm({...crmForm, reminder: e.target.value})} />
@@ -1377,7 +1415,7 @@ const AdminDashboard: React.FC = () => {
                               {editingId ? 'Actualizar Perfil' : 'Crear Perfil'}
                             </button>
                             {editingId && (
-                               <button type="button" onClick={() => { setEditingId(null); setCrmForm({ name: '', email: '', phone: '', status: 'prospect', value: '', tag: '', reminder: '' }); }} className="p-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl transition-all">
+                               <button type="button" onClick={() => { setEditingId(null); setCrmForm({ name: '', email: '', phone: '', status: 'prospect', value: '', tag: '', reminder: '', service: '', contractStart: '', contractEnd: '', serviceValue: '', billingCycle: 'unique' }); }} className="p-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl transition-all">
                                  <X size={18} />
                                </button>
                             )}
@@ -2808,6 +2846,61 @@ const AdminDashboard: React.FC = () => {
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-movie-red focus:outline-none resize-none"
                       value={settingsForm.hero_copy}
                       onChange={(e) => setSettingsForm({...settingsForm, hero_copy: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                {/* Brand Section */}
+                <div className="space-y-6">
+                  <h4 className="text-xs font-black uppercase tracking-[0.4em] text-movie-red border-b border-white/5 pb-4">Marca, Logos y CTA Principal</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-[0.3em] text-white/40 mb-3 font-black">Nombre en Header</label>
+                      <input
+                        type="text"
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-movie-red focus:outline-none"
+                        value={settingsForm.header_name}
+                        onChange={(e) => setSettingsForm({...settingsForm, header_name: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-[0.3em] text-white/40 mb-3 font-black">Logo Header (URL)</label>
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-movie-red focus:outline-none"
+                        value={settingsForm.header_logo_url}
+                        onChange={(e) => setSettingsForm({...settingsForm, header_logo_url: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-[0.3em] text-white/40 mb-3 font-black">Logo Footer (URL)</label>
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-movie-red focus:outline-none"
+                        value={settingsForm.footer_logo_url}
+                        onChange={(e) => setSettingsForm({...settingsForm, footer_logo_url: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase tracking-[0.3em] text-white/40 mb-3 font-black">Texto CTA Footer</label>
+                      <input
+                        type="text"
+                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-movie-red focus:outline-none"
+                        value={settingsForm.footer_cta_text}
+                        onChange={(e) => setSettingsForm({...settingsForm, footer_cta_text: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase tracking-[0.3em] text-white/40 mb-3 font-black">Link CTA Footer</label>
+                    <input
+                      type="url"
+                      placeholder="https://wa.me/573017355046"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-movie-red focus:outline-none"
+                      value={settingsForm.footer_cta_url}
+                      onChange={(e) => setSettingsForm({...settingsForm, footer_cta_url: e.target.value})}
                     />
                   </div>
                 </div>

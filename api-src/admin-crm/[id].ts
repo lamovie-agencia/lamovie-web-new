@@ -26,8 +26,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              value = COALESCE($7, value),
              tag = COALESCE($8, tag),
              reminder = COALESCE($9, reminder),
-             origin = COALESCE($10, origin)
-         WHERE id = $11
+             origin = COALESCE($10, origin),
+             contract_start = COALESCE($11, contract_start),
+             contract_end = COALESCE($12, contract_end),
+             service_value = COALESCE($13, service_value),
+             billing_cycle = COALESCE($14, billing_cycle)
+         WHERE id = $15
          RETURNING *, created_at AS date`,
         [
           firstDefined(body.name),
@@ -40,6 +44,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           firstDefined(body.tag),
           firstDefined(body.reminder),
           firstDefined(body.origin),
+          firstDefined(body.contractStart),
+          firstDefined(body.contractEnd),
+          body.serviceValue !== undefined ? Number(body.serviceValue) : null,
+          firstDefined(body.billingCycle),
           id
         ]
       );

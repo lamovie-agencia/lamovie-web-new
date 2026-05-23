@@ -11,15 +11,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = getPool();
 
     if (req.method === 'GET') {
-      const result = await db.query('SELECT id, date, description, type, amount_usd AS "amountUSD", category FROM admin_transactions ORDER BY id DESC');
+      const result = await db.query(`
+        SELECT t.id, t.date, t.description, t.type, t.amount_usd AS "amountUSD", t.category,
+               t.scope, t.payment_method AS "paymentMethod", t.work_type AS "workType", t.notes,
+               t.collaborator_id AS "collaboratorId", tm.name AS "collaboratorName",
+               t.project_id AS "projectId", t.contract_id AS "contractId", t.activity_date AS "activityDate"
+        FROM admin_transactions t
+        LEFT JOIN team_members tm ON tm.id = t.collaborator_id
+        ORDER BY t.id DESC
+      `);
       return res.status(200).json(result.rows);
     }
 
     if (req.method === 'POST') {
-      const { date, description, type, amountUSD, category } = req.body || {};
+      const {
+        date, description, type, amountUSD, category, scope, paymentMethod,
+        workType, notes, collaboratorId, projectId, contractId, activityDate
+      } = req.body || {};
+      if (!description) return res.status(400).json({ error: 'Description is required' });
       const result = await db.query(
-        'INSERT INTO admin_transactions (date, description, type, amount_usd, category) VALUES ($1, $2, $3, $4, $5) RETURNING id, date, description, type, amount_usd AS "amountUSD", category',
-        [date || new Date().toISOString().split('T')[0], description || '', type || 'income', Number(amountUSD) || 0, category || '']
+        `INSERT INTO admin_transactions
+          (date, description, type, amount_usd, category, scope, payment_method, work_type, notes,
+           collaborator_id, project_id, contract_id, activity_date)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+         RETURNING id, date, description, type, amount_usd AS "amountUSD", category,
+                   scope, payment_method AS "paymentMethod", work_type AS "workType", notes,
+                   collaborator_id AS "collaboratorId", project_id AS "projectId",
+                   contract_id AS "contractId", activity_date AS "activityDate"`,
+        [
+          date || new Date().toISOString().split('T')[0],
+          description,
+          type || 'income',
+          Number(amountUSD) || 0,
+          category || '',
+          scope || 'company',
+          paymentMethod || '',
+          workType || '',
+          notes || '',
+          collaboratorId ? Number(collaboratorId) : null,
+          projectId ? Number(projectId) : null,
+          contractId ? Number(contractId) : null,
+          activityDate || date || new Date().toISOString().split('T')[0]
+        ]
       );
       return res.status(201).json(result.rows[0]);
     }

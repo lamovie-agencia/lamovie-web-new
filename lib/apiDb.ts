@@ -212,6 +212,15 @@ export async function ensureCoreSchema() {
           status TEXT DEFAULT 'pending',
           next_billing TEXT,
           auto_renew BOOLEAN DEFAULT TRUE,
+          start_date TEXT,
+          end_date TEXT,
+          billing_cycle TEXT DEFAULT 'monthly',
+          expected_cost_usd NUMERIC DEFAULT 0,
+          reinvest_percent NUMERIC DEFAULT 20,
+          savings_percent NUMERIC DEFAULT 10,
+          payroll_percent NUMERIC DEFAULT 30,
+          owner_profit_percent NUMERIC DEFAULT 40,
+          notes TEXT DEFAULT '',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -222,6 +231,27 @@ export async function ensureCoreSchema() {
           type TEXT DEFAULT 'income',
           amount_usd NUMERIC DEFAULT 0,
           category TEXT DEFAULT '',
+          scope TEXT DEFAULT 'company',
+          payment_method TEXT DEFAULT '',
+          work_type TEXT DEFAULT '',
+          notes TEXT DEFAULT '',
+          collaborator_id INTEGER,
+          project_id INTEGER,
+          contract_id INTEGER,
+          activity_date TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS team_members (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          role TEXT DEFAULT '',
+          email TEXT DEFAULT '',
+          phone TEXT DEFAULT '',
+          rate_usd NUMERIC DEFAULT 0,
+          rate_cycle TEXT DEFAULT 'project',
+          active BOOLEAN DEFAULT TRUE,
+          notes TEXT DEFAULT '',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -288,6 +318,36 @@ export async function ensureCoreSchema() {
         ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS likes INTEGER DEFAULT 0;
         ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;
         ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS click_count INTEGER DEFAULT 0;
+        ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS format_type TEXT DEFAULT 'horizontal';
+        ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS media_source TEXT DEFAULT 'native';
+        ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS media_url TEXT DEFAULT '';
+        ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS thumbnail_url TEXT DEFAULT '';
+        ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';
+        ALTER TABLE portfolio ADD COLUMN IF NOT EXISTS video_url TEXT DEFAULT '';
+
+        ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS contract_start TEXT;
+        ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS contract_end TEXT;
+        ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS service_value NUMERIC DEFAULT 0;
+        ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS billing_cycle TEXT DEFAULT 'unique';
+
+        ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS start_date TEXT;
+        ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS end_date TEXT;
+        ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS billing_cycle TEXT DEFAULT 'monthly';
+        ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS expected_cost_usd NUMERIC DEFAULT 0;
+        ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS reinvest_percent NUMERIC DEFAULT 20;
+        ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS savings_percent NUMERIC DEFAULT 10;
+        ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS payroll_percent NUMERIC DEFAULT 30;
+        ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS owner_profit_percent NUMERIC DEFAULT 40;
+        ALTER TABLE admin_contracts ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
+
+        ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS scope TEXT DEFAULT 'company';
+        ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS payment_method TEXT DEFAULT '';
+        ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS work_type TEXT DEFAULT '';
+        ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
+        ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS collaborator_id INTEGER;
+        ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS project_id INTEGER;
+        ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS contract_id INTEGER;
+        ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS activity_date TEXT;
       `);
     })();
   }
