@@ -21,6 +21,9 @@ export function DocsModule() {
   const [search, setSearch] = useState('');
   const [documents, setDocuments] = useState<any[]>([]);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const pendingSignatures = documents.filter(doc => doc.status === 'pending_sign').length;
+  const invoicesIssued = documents.filter(doc => doc.type === 'Factura').length;
+  const activeQuotes = documents.filter(doc => doc.type === 'Cotización' || doc.type === 'CotizaciÃ³n').length;
 
   const fetchDocs = useCallback(async () => {
     if (!token) return;
@@ -119,9 +122,9 @@ export function DocsModule() {
                  <FileDigit size={64} />
                </div>
                <h4 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-4">Total Documentos</h4>
-               <p className="text-4xl font-black tracking-tighter">1,204</p>
+               <p className="text-4xl font-black tracking-tighter">{documents.length}</p>
                <div className="mt-4 inline-flex items-center gap-1 text-[10px] text-green-400 font-bold uppercase tracking-widest">
-                 +14 generados hoy
+                 Base de datos activa
                </div>
              </div>
 
@@ -130,7 +133,7 @@ export function DocsModule() {
                  <FileSignature size={64} />
                </div>
                <h4 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-4">Firmas Pendientes</h4>
-               <p className="text-4xl font-black tracking-tighter">12</p>
+               <p className="text-4xl font-black tracking-tighter">{pendingSignatures}</p>
                <div className="mt-4 inline-flex items-center gap-1 text-[10px] text-yellow-400 font-bold uppercase tracking-widest bg-yellow-400/10 px-2 py-1 rounded">
                  Requiere atención
                </div>
@@ -141,7 +144,7 @@ export function DocsModule() {
                  <Receipt size={64} />
                </div>
                <h4 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-4">Facturas Emitidas</h4>
-               <p className="text-4xl font-black tracking-tighter">45</p>
+               <p className="text-4xl font-black tracking-tighter">{invoicesIssued}</p>
                <div className="mt-4 inline-flex items-center gap-1 text-[10px] text-white/50 font-bold uppercase tracking-widest">
                  Este mes
                </div>
@@ -152,7 +155,7 @@ export function DocsModule() {
                  <Briefcase size={64} />
                </div>
                <h4 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-4">Cotizaciones Activas</h4>
-               <p className="text-4xl font-black tracking-tighter">8</p>
+               <p className="text-4xl font-black tracking-tighter">{activeQuotes}</p>
                <div className="mt-4 inline-flex items-center gap-1 text-[10px] text-green-400 font-bold uppercase tracking-widest">
                  $42.5K en Pipeline
                </div>

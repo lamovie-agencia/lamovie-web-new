@@ -37,7 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           notes || '',
           Number(value) || 0,
           tag || '',
-          reminder || '',
+          reminder || null,
           firstDefined(origin, 'Formulario Web')
         ]
       );
@@ -50,4 +50,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
-

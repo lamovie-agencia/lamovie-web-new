@@ -28,8 +28,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           description || '',
           priority || 'medium',
           (req as AuthenticatedRequest).user?.username || 'admin',
-          firstDefined(due_date, dueDate, ''),
-          reminder || ''
+          firstDefined(due_date, dueDate, null),
+          reminder || null
         ]
       );
       return res.status(201).json(result.rows[0]);

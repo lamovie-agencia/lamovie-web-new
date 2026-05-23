@@ -57,6 +57,15 @@ import {
 
 type Tab = 'dashboard' | 'crm' | 'leads' | 'projects' | 'production' | 'social' | 'ai' | 'analytics' | 'finance' | 'documents' | 'portfolio' | 'partners' | 'services' | 'testimonials' | 'web-showcase' | 'pricing' | 'settings' | 'tasks' | 'notes';
 
+const isProspectStatus = (status: string) => ['prospect', 'new', 'contacted'].includes(status);
+const isActiveStatus = (status: string) => ['active', 'closed', 'converted'].includes(status);
+const isInactiveStatus = (status: string) => ['inactive', 'discarded'].includes(status);
+const displayCrmStatus = (status: string) => {
+  if (isActiveStatus(status)) return 'ACTIVO';
+  if (isInactiveStatus(status)) return 'INACTIVO';
+  return 'PROSPECTO';
+};
+
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   toolName?: string;
@@ -264,7 +273,17 @@ const AdminDashboard: React.FC = () => {
       setCrmClients(Array.isArray(crmData) ? crmData : []);
       setAiLogs(Array.isArray(aiLogsData) ? aiLogsData : []);
       if (statusData) {
-        setSystemStatus(statusData);
+        setSystemStatus({
+          database: statusData.database || statusData.services?.database || { connected: false, type: 'PostgreSQL', url_defined: false },
+          environment: statusData.environment && typeof statusData.environment === 'object'
+            ? statusData.environment
+            : {
+                node_env: statusData.environment || 'production',
+                vercel: Boolean((window as any).location?.hostname?.includes('vercel.app')),
+                jwt_defined: true,
+                port: 3000
+              }
+        });
       }
 
       if (settingsData && settingsData.hero) {
@@ -1296,7 +1315,7 @@ const AdminDashboard: React.FC = () => {
                          <Target size={80} />
                        </div>
                        <h4 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-4">Prospectos</h4>
-                       <p className="text-5xl font-black tracking-tighter">{crmClients.filter(c => c.status === 'prospect').length}</p>
+                       <p className="text-5xl font-black tracking-tighter">{crmClients.filter(c => isProspectStatus(c.status)).length}</p>
                        <div className="mt-4 inline-flex items-center gap-1 text-[10px] text-yellow-400 font-bold uppercase tracking-widest">
                          <Clock size={12} /> Requieren seguimiento
                        </div>
@@ -1322,7 +1341,7 @@ const AdminDashboard: React.FC = () => {
                         <div>
                           <h4 className="text-sm font-bold text-blue-300 uppercase tracking-widest mb-1">IA Insights</h4>
                           <p className="text-white/80 md:text-lg leading-relaxed">
-                            Existen <strong>{crmClients.filter(c => c.reminder).length}</strong> seguimientos pendientes para esta semana. El cliente con mayor potencial de cierre es <strong>{crmClients.find(c => c.status === 'prospect' && c.value > 0)?.name || 'N/A'}</strong>. 
+                            Existen <strong>{crmClients.filter(c => c.reminder).length}</strong> seguimientos pendientes para esta semana. El cliente con mayor potencial de cierre es <strong>{crmClients.find(c => isProspectStatus(c.status) && c.value > 0)?.name || 'N/A'}</strong>. 
                           </p>
                         </div>
                      </div>
@@ -1405,11 +1424,11 @@ const AdminDashboard: React.FC = () => {
                               <div className="flex items-center gap-3 mb-1">
                                 <h4 className="text-white font-bold text-xl truncate tracking-tight">{client.name}</h4>
                                 <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                                  client.status === 'active' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 
-                                  client.status === 'inactive' ? 'bg-white/10 text-white/50 border border-white/10' : 
+                                  isActiveStatus(client.status) ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 
+                                  isInactiveStatus(client.status) ? 'bg-white/10 text-white/50 border border-white/10' : 
                                   'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                                 }`}>
-                                  {client.status === 'active' ? 'ACTIVO' : client.status === 'inactive' ? 'INACTIVO' : 'PROSPECTO'}
+                                  {displayCrmStatus(client.status)}
                                 </span>
                               </div>
                               <div className="flex flex-wrap items-center gap-4 text-[10px] font-semibold text-white/40 uppercase tracking-wider">
@@ -1499,10 +1518,10 @@ const AdminDashboard: React.FC = () => {
                            <h4 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
                              <div className="w-2 h-2 rounded-full bg-blue-500"></div> Prospectos
                            </h4>
-                           <span className="text-xs font-bold text-white/30">{crmClients.filter(c => c.status === 'prospect').length}</span>
+                           <span className="text-xs font-bold text-white/30">{crmClients.filter(c => isProspectStatus(c.status)).length}</span>
                          </div>
                          <div className="flex flex-col gap-4 overflow-y-auto pr-2">
-                           {crmClients.filter(c => c.status === 'prospect').map(client => (
+                           {crmClients.filter(c => isProspectStatus(c.status)).map(client => (
                              <div key={client.id} className="bg-black/60 border border-white/10 p-5 rounded-3xl hover:border-blue-500/50 transition-all cursor-grab active:cursor-grabbing">
                                <h5 className="font-bold text-lg mb-1">{client.name}</h5>
                                {client.value > 0 && <p className="text-xs text-blue-400 font-bold tracking-widest mb-3">${client.value}</p>}
@@ -1524,10 +1543,10 @@ const AdminDashboard: React.FC = () => {
                            <h4 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
                              <div className="w-2 h-2 rounded-full bg-green-500"></div> Clientes Activos
                            </h4>
-                           <span className="text-xs font-bold text-white/30">{crmClients.filter(c => c.status === 'active').length}</span>
+                           <span className="text-xs font-bold text-white/30">{crmClients.filter(c => isActiveStatus(c.status)).length}</span>
                          </div>
                          <div className="flex flex-col gap-4 overflow-y-auto pr-2">
-                           {crmClients.filter(c => c.status === 'active').map(client => (
+                           {crmClients.filter(c => isActiveStatus(c.status)).map(client => (
                              <div key={client.id} className="bg-black/60 border border-white/10 p-5 rounded-3xl hover:border-green-500/50 transition-all cursor-grab active:cursor-grabbing">
                                <h5 className="font-bold text-lg mb-1">{client.name}</h5>
                                {client.value > 0 && <p className="text-xs text-green-400 font-bold tracking-widest mb-3">${client.value}</p>}
@@ -1544,10 +1563,10 @@ const AdminDashboard: React.FC = () => {
                            <h4 className="text-sm font-bold text-white uppercase tracking-widest flex items-center gap-2">
                              <div className="w-2 h-2 rounded-full bg-white/20"></div> Inactivos / Archivo
                            </h4>
-                           <span className="text-xs font-bold text-white/30">{crmClients.filter(c => c.status === 'inactive').length}</span>
+                           <span className="text-xs font-bold text-white/30">{crmClients.filter(c => isInactiveStatus(c.status)).length}</span>
                          </div>
                          <div className="flex flex-col gap-4 overflow-y-auto pr-2">
-                           {crmClients.filter(c => c.status === 'inactive').map(client => (
+                           {crmClients.filter(c => isInactiveStatus(c.status)).map(client => (
                              <div key={client.id} className="bg-black/40 border border-white/5 p-5 rounded-3xl">
                                <h5 className="font-bold text-white/60 mb-1">{client.name}</h5>
                              </div>

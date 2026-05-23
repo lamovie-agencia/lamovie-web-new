@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!content) return res.status(400).json({ error: 'Content is required' });
       const result = await db.query(
         'INSERT INTO admin_notes (content, reminder) VALUES ($1, $2) RETURNING *',
-        [content, reminder || '']
+        [content, reminder || null]
       );
       return res.status(201).json(result.rows[0]);
     }
@@ -31,4 +31,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
-

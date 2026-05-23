@@ -475,6 +475,9 @@ async function startServer() {
       ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS location TEXT;
       ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS device TEXT;
       ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS browser TEXT;
+      ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS service TEXT DEFAULT '';
+      ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS notes TEXT DEFAULT '';
+      ALTER TABLE admin_crm_clients ADD COLUMN IF NOT EXISTS origin TEXT DEFAULT 'Formulario Web';
     `);
 
     // Ensure portfolio extensions are loaded

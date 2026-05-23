@@ -107,9 +107,9 @@ export function ProjectsModule() {
   }, [projects, token, fetchProjects]);
 
   const chartData = useMemo(() => projects.map(p => ({
-    name: p.name.substring(0, 10),
-    progress: p.progress,
-    assets: p.assets
+    name: String(p.name || 'Proyecto').substring(0, 10),
+    progress: Number(p.progress) || 0,
+    assets: Number(p.assets) || 0
   })), [projects]);
 
   const kanbanColumns = useMemo(() => [
@@ -176,7 +176,10 @@ export function ProjectsModule() {
              </div>
              <h4 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-4">Entregas Próximas</h4>
              <p className="text-5xl font-black tracking-tighter">
-               {projects.filter(p => new Date(p.dueDate) <= new Date(new Date().setDate(new Date().getDate() + 15))).length}
+               {projects.filter(p => {
+                 const due = new Date(p.dueDate || p.due_date || p.created_at || Date.now());
+                 return due <= new Date(new Date().setDate(new Date().getDate() + 15));
+               }).length}
              </p>
              <div className="mt-4 inline-flex items-center gap-1 text-[10px] text-yellow-400 font-bold uppercase tracking-widest">
                <AlertCircle size={12} /> 15 días
@@ -189,7 +192,7 @@ export function ProjectsModule() {
              </div>
              <h4 className="text-white/40 text-xs font-bold uppercase tracking-widest mb-4">Progreso General</h4>
              <p className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">
-               {projects.length > 0 ? Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length) : 0}%
+               {projects.length > 0 ? Math.round(projects.reduce((sum, p) => sum + (Number(p.progress) || 0), 0) / projects.length) : 0}%
              </p>
              <div className="mt-4 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
                Promedio
@@ -318,6 +321,11 @@ export function ProjectsModule() {
 }
 
 function ProjectCard({ project }: { project: any; key?: string | number }) {
+  const dueDate = project.dueDate || project.due_date || project.created_at || new Date().toISOString();
+  const progress = Number(project.progress) || 0;
+  const assets = Number(project.assets) || 0;
+  const team = Array.isArray(project.team) ? project.team : [];
+
   return (
     <div className="bg-[#111] border border-white/10 p-5 rounded-3xl hover:border-movie-red/50 transition-all cursor-grab active:cursor-grabbing group relative overflow-hidden">
       <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${project.color}`}></div>
@@ -337,28 +345,28 @@ function ProjectCard({ project }: { project: any; key?: string | number }) {
       <div className="mb-4">
         <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest mb-1.5 text-white/40">
            <span>Progreso</span>
-           <span>{project.progress}%</span>
+           <span>{progress}%</span>
         </div>
         <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-          <div className={`h-full bg-gradient-to-r ${project.color}`} style={{ width: `${project.progress}%` }}></div>
+          <div className={`h-full bg-gradient-to-r ${project.color}`} style={{ width: `${progress}%` }}></div>
         </div>
       </div>
 
       <div className="flex justify-between items-center pt-3 border-t border-white/5">
         <div className="flex -space-x-2">
-           {project.team.slice(0, 3).map((initials: string, i: number) => (
+           {team.slice(0, 3).map((initials: string, i: number) => (
              <div key={i} className="w-7 h-7 rounded-full bg-black border border-[#222] flex items-center justify-center text-[8px] font-black z-10">{initials}</div>
            ))}
         </div>
         
         <div className="flex gap-3 text-white/40">
            <div className="flex items-center gap-1 text-[10px] font-bold">
-             <AlertCircle size={12} className={new Date(project.dueDate) < new Date(new Date().setDate(new Date().getDate() + 15)) ? 'text-movie-red' : ''} />
-             {new Date(project.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+             <AlertCircle size={12} className={new Date(dueDate) < new Date(new Date().setDate(new Date().getDate() + 15)) ? 'text-movie-red' : ''} />
+             {new Date(dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
            </div>
            <div className="flex items-center gap-1 text-[10px] font-bold">
              <FolderOpen size={12} />
-             {project.assets}
+             {assets}
            </div>
         </div>
       </div>

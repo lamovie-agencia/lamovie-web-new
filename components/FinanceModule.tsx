@@ -60,18 +60,31 @@ export function FinanceModule() {
     }
   }, [currency]);
 
-  const totalIncomeUSD = useMemo(() => transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + curr.amountUSD, 0), [transactions]);
-  const totalExpenseUSD = useMemo(() => transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + curr.amountUSD, 0), [transactions]);
+  const totalIncomeUSD = useMemo(() => transactions.filter(t => t.type === 'income').reduce((acc, curr) => acc + (Number(curr.amountUSD) || 0), 0), [transactions]);
+  const totalExpenseUSD = useMemo(() => transactions.filter(t => t.type === 'expense').reduce((acc, curr) => acc + (Number(curr.amountUSD) || 0), 0), [transactions]);
   const netProfitUSD = totalIncomeUSD - totalExpenseUSD;
-  const mrrUSD = useMemo(() => contracts.filter(c => c.status === 'active').reduce((acc, curr) => acc + curr.valueUSD, 0), [contracts]);
+  const mrrUSD = useMemo(() => contracts.filter(c => c.status === 'active').reduce((acc, curr) => acc + (Number(curr.valueUSD) || 0), 0), [contracts]);
+  const marginPercent = totalIncomeUSD > 0 ? (netProfitUSD / totalIncomeUSD) * 100 : 0;
 
   // Group transactions by date for the chart
   const timelineData = useMemo(() => [...transactions].reverse().map(t => ({
     date: t.date.substring(5, 10),
-    amount: t.type === 'income' ? t.amountUSD : -t.amountUSD,
-    income: t.type === 'income' ? t.amountUSD : 0,
-    expense: t.type === 'expense' ? t.amountUSD : 0
+    amount: t.type === 'income' ? Number(t.amountUSD) || 0 : -(Number(t.amountUSD) || 0),
+    income: t.type === 'income' ? Number(t.amountUSD) || 0 : 0,
+    expense: t.type === 'expense' ? Number(t.amountUSD) || 0 : 0
   })), [transactions]);
+
+  const createTransaction = async (type: 'income' | 'expense') => {
+    if (!token) return;
+    await adminService.createTransaction({
+      date: new Date().toISOString().split('T')[0],
+      description: type === 'income' ? 'Nuevo ingreso registrado' : 'Nuevo gasto operativo',
+      type,
+      amountUSD: type === 'income' ? 500 : 100,
+      category: type === 'income' ? 'Venta directa' : 'Operación'
+    }, token);
+    fetchFinance();
+  };
 
   const pieData = useMemo(() => [
     { name: 'Income', value: totalIncomeUSD, color: '#22c55e' },
@@ -203,10 +216,10 @@ export function FinanceModule() {
                <div className="mt-4 flex flex-col gap-2 relative z-10 w-full">
                  <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-white/50">
                     <span>Rentabilidad</span>
-                    <span className="text-yellow-400">{((netProfitUSD / totalIncomeUSD) * 100).toFixed(1)}%</span>
+                    <span className="text-yellow-400">{marginPercent.toFixed(1)}%</span>
                  </div>
                  <div className="w-full h-1 bg-black/40 rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-yellow-600 to-yellow-400" style={{ width: `${(netProfitUSD / totalIncomeUSD) * 100}%` }}></div>
+                    <div className="h-full bg-gradient-to-r from-yellow-600 to-yellow-400" style={{ width: `${Math.max(0, Math.min(100, marginPercent))}%` }}></div>
                  </div>
                </div>
              </div>
@@ -396,8 +409,34 @@ export function FinanceModule() {
         </div>
       )}
 
-      {/* INVOICES & TRANSACTIONS PLACEHOLDERS */}
-      {(subTab === 'invoices' || subTab === 'transactions') && (
+      {subTab === 'transactions' && (
+        <div className="bg-white/5 border border-white/10 rounded-[40px] p-8 backdrop-blur-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+            <h3 className="text-2xl font-black uppercase tracking-widest flex items-center gap-3">
+              <Wallet size={24} className="text-yellow-400" /> Caja Histórica
+            </h3>
+            <div className="flex gap-3">
+              <button onClick={() => createTransaction('income')} className="bg-green-500 hover:bg-green-600 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest">Ingreso</button>
+              <button onClick={() => createTransaction('expense')} className="bg-red-500 hover:bg-red-600 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest">Gasto</button>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {transactions.map(tx => (
+              <div key={tx.id} className="flex items-center justify-between bg-black/40 border border-white/5 rounded-2xl p-4">
+                <div>
+                  <h4 className="font-bold text-sm">{tx.description}</h4>
+                  <p className="text-[10px] uppercase tracking-widest text-white/40">{tx.date} - {tx.category}</p>
+                </div>
+                <span className={`font-mono font-bold ${tx.type === 'income' ? 'text-green-400' : 'text-red-400'}`}>
+                  {tx.type === 'income' ? '+' : '-'}{formatMoney(Number(tx.amountUSD) || 0)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {subTab === 'invoices' && (
         <div className="bg-white/5 border border-white/10 rounded-[40px] p-16 flex flex-col items-center justify-center text-center min-h-[60vh] relative overflow-hidden backdrop-blur-xl">
            <div className="absolute inset-0 bg-gradient-to-b from-yellow-500/5 to-transparent mix-blend-overlay"></div>
            <div className="w-24 h-24 bg-gradient-to-br from-white/10 to-white/5 rounded-[32px] flex items-center justify-center mb-8 border border-white/10 backdrop-blur-xl shadow-2xl relative z-10">

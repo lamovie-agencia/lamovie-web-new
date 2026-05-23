@@ -12,8 +12,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { name, email, phone, service, message, origin } = req.body || {};
-    if (!name || !email || !service) {
-      return res.status(400).json({ error: 'Missing required fields: name, email, service' });
+    if (!name) {
+      return res.status(400).json({ error: 'Missing required field: name' });
     }
 
     await ensureCoreSchema();
@@ -24,7 +24,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `INSERT INTO admin_crm_clients (name, email, phone, service, status, notes, origin, ip, device)
        VALUES ($1, $2, $3, $4, 'new', $5, $6, $7, $8)
        RETURNING *, created_at AS date`,
-      [name, email, phone || '', service, message || '', origin || 'Formulario Web', ip, device]
+      [name, email || '', phone || '', service || 'Contacto general', message || '', origin || 'Formulario Web', ip, device]
     );
 
     return res.status(201).json({

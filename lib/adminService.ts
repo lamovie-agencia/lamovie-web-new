@@ -24,6 +24,11 @@ const secureFetch = async (url: string, options: RequestInit = {}, suppliedToken
       throw new Error('Sesión expirada o token inválido.');
     }
     
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || body.message || `Error HTTP ${res.status}`);
+    }
+
     return res;
   } catch (err) {
     console.error(`🔒 SECURE-FETCH ERROR on ${url}:`, err);
