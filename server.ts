@@ -507,6 +507,8 @@ async function startServer() {
   ].filter(Boolean).map((origin) => String(origin).trim().replace(/\/$/, ""));
 
   const productionOrigins = [
+    "https://agencylamovie.com",
+    "https://www.agencylamovie.com",
     "https://lamovie.agency",
     "https://lamovie.pro"
   ];
@@ -639,7 +641,7 @@ async function startServer() {
   app.get("/api/admin/profile", authenticateToken, (req: any, res: any) => {
     res.json({
       username: req.user?.username || "admin",
-      name: "Yosimar Sarmiento",
+      name: "Yosimar Zuñiga",
       role: "Administrador Master",
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80"
     });

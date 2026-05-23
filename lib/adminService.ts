@@ -72,14 +72,14 @@ export const adminService = {
   },
 
   deletePortfolio: async (id: number, token?: string) => {
-    const res = await secureFetch(`${API_URL}/portfolio/${id}`, {
+    const res = await secureFetch(`${API_URL}/portfolio?id=${id}`, {
       method: 'DELETE',
     }, token);
     return res.json();
   },
 
   updatePortfolio: async (id: number, data: any, token?: string) => {
-    const res = await secureFetch(`${API_URL}/portfolio/${id}`, {
+    const res = await secureFetch(`${API_URL}/portfolio?id=${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
@@ -404,12 +404,32 @@ export const adminService = {
   },
 
   uploadAsset: async (file: File, token?: string) => {
-    const formData = new FormData();
-    formData.append('file', file);
+    const maxBytes = 4 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      throw new Error('El archivo supera el límite de 4 MB para publicación directa.');
+    }
+
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+    const base64 = dataUrl.split(',')[1] || '';
+
     const res = await secureFetch(`${API_URL}/assets/upload`, {
       method: 'POST',
-      body: formData
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        filename: file.name,
+        contentType: file.type,
+        data: base64
+      })
     }, token);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || 'No se pudo subir el archivo');
+    }
     return res.json();
   },
 
@@ -427,7 +447,7 @@ export const adminService = {
     return res.json();
   },
   updatePortfolioProject: async (id: number, data: any, token?: string) => {
-    const res = await secureFetch(`${API_URL}/portfolio/${id}`, {
+    const res = await secureFetch(`${API_URL}/portfolio?id=${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -435,7 +455,7 @@ export const adminService = {
     return res.json();
   },
   deletePortfolioProject: async (id: number, token?: string) => {
-    const res = await secureFetch(`${API_URL}/portfolio/${id}`, {
+    const res = await secureFetch(`${API_URL}/portfolio?id=${id}`, {
       method: 'DELETE'
     }, token);
     return res.json();

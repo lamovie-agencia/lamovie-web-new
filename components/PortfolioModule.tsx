@@ -102,6 +102,8 @@ export function PortfolioModule() {
 
   // Status logs
   const [statusMsg, setStatusMsg] = useState<{ text: string; error: boolean } | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
 
   // States of the Create/Edit form
   const [formState, setFormState] = useState<{
@@ -153,6 +155,8 @@ export function PortfolioModule() {
     });
     setIsModalOpen(true);
     setStatusMsg(null);
+    setCoverFile(null);
+    setVideoFile(null);
   };
 
   // Handle open modal for edit
@@ -170,6 +174,8 @@ export function PortfolioModule() {
     });
     setIsModalOpen(true);
     setStatusMsg(null);
+    setCoverFile(null);
+    setVideoFile(null);
   };
 
   // Safe delete handler
@@ -199,12 +205,25 @@ export function PortfolioModule() {
     }
 
     try {
+      const payload = { ...formState };
+
+      if (coverFile) {
+        const upload = await adminService.uploadAsset(coverFile, token);
+        payload.thumbnail_url = upload.url;
+      }
+
+      if (videoFile) {
+        const upload = await adminService.uploadAsset(videoFile, token);
+        payload.media_url = upload.url;
+        payload.media_source = 'native';
+      }
+
       if (modalMode === 'create') {
-        await adminService.createPortfolioProject(formState, token);
+        await adminService.createPortfolioProject(payload, token);
         setStatusMsg({ text: "¡Proyecto creado con éxito e integrado al Bento Grid!", error: false });
       } else {
         if (selectedId) {
-          await adminService.updatePortfolioProject(selectedId, formState, token);
+          await adminService.updatePortfolioProject(selectedId, payload, token);
           setStatusMsg({ text: "¡Proyecto actualizado correctamente con persistencia en PostgreSQL!", error: false });
         }
       }
@@ -686,6 +705,30 @@ export function PortfolioModule() {
                          * La base de datos ejecutará un Regex sanitizador para extraer el ID en segundo plano.
                        </span>
                      </div>
+
+                     <div className="border-t border-white/10 pt-4">
+                       <label className="block text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">O subir video nativo (max 4 MB)</label>
+                       <label className="flex items-center justify-between gap-3 bg-black/40 border border-dashed border-white/15 hover:border-movie-red rounded-xl px-4 py-3 cursor-pointer transition-all">
+                         <span className="flex items-center gap-2 text-xs text-white/60">
+                           <UploadCloud size={16} />
+                           {videoFile ? videoFile.name : 'Seleccionar video'}
+                         </span>
+                         <input
+                           type="file"
+                           accept="video/*"
+                           className="hidden"
+                           onChange={(e) => {
+                             const file = e.target.files?.[0] || null;
+                             if (file && file.size > 4 * 1024 * 1024) {
+                               setStatusMsg({ text: 'El video supera el limite de 4 MB. Usa un link externo para videos pesados.', error: true });
+                               e.currentTarget.value = '';
+                               return;
+                             }
+                             setVideoFile(file);
+                           }}
+                         />
+                       </label>
+                     </div>
                    </div>
 
                    {/* Custom cover file selection / visual presets */}
@@ -698,6 +741,27 @@ export function PortfolioModule() {
                        onChange={(e) => setFormState(prev => ({ ...prev, thumbnail_url: e.target.value }))}
                        className="w-full bg-white/5 border border-white/10 focus:border-movie-red rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition-all"
                      />
+
+                     <label className="flex items-center justify-between gap-3 bg-white/5 border border-dashed border-white/15 hover:border-movie-red rounded-xl px-4 py-3 cursor-pointer transition-all">
+                       <span className="flex items-center gap-2 text-xs text-white/60">
+                         <ImageIcon size={16} />
+                         {coverFile ? coverFile.name : 'Subir imagen de portada (max 4 MB)'}
+                       </span>
+                       <input
+                         type="file"
+                         accept="image/*"
+                         className="hidden"
+                         onChange={(e) => {
+                           const file = e.target.files?.[0] || null;
+                           if (file && file.size > 4 * 1024 * 1024) {
+                             setStatusMsg({ text: 'La imagen supera el limite de 4 MB.', error: true });
+                             e.currentTarget.value = '';
+                             return;
+                           }
+                           setCoverFile(file);
+                         }}
+                       />
+                     </label>
                      
                      <div className="space-y-1">
                         <span className="text-[9px] uppercase font-bold tracking-widest text-white/30 block">Presets Estéticos de Alta Calidad:</span>

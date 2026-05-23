@@ -209,8 +209,8 @@ const Portfolio: React.FC = () => {
 
   // Combined real-time portfolio timeline
   const combinedItems = useMemo(() => {
-    return [...dbItems, ...fallbackWorks];
-  }, [dbItems, fallbackWorks]);
+    return dbItems;
+  }, [dbItems]);
 
   // Filter items flawlessly based on selected tag
   const filteredItems = useMemo(() => {
