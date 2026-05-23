@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { AuthenticatedRequest, asArray, authenticateToken, ensureCoreSchema, firstDefined, getPool, setCors } from '../lib/apiDb';
+import { AuthenticatedRequest, asArray, authenticateToken, ensureCoreSchema, firstDefined, getPool, setCors } from '../lib/apiDb.js';
 
 async function resolveClientId(clientId: any, clientName: any) {
   if (clientId) return Number(clientId);

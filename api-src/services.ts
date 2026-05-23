@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { AuthenticatedRequest, asArray, authenticateToken, ensureCoreSchema, getPool, setCors } from '../lib/apiDb';
+import { AuthenticatedRequest, asArray, authenticateToken, ensureCoreSchema, getPool, setCors } from '../lib/apiDb.js';
 
 const defaultServices = [
   {

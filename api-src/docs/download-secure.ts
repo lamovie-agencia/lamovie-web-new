@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import path from 'path';
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { ensureCoreSchema, getPool, setCors } from '../../lib/apiDb';
+import { ensureCoreSchema, getPool, setCors } from '../../lib/apiDb.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);

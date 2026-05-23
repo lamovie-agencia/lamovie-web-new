@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { AuthenticatedRequest, asArray, authenticateToken, ensureCoreSchema, getPool, setCors } from '../lib/apiDb';
+import { AuthenticatedRequest, asArray, authenticateToken, ensureCoreSchema, getPool, setCors } from '../lib/apiDb.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);

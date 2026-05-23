@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { ensureCoreSchema, getPool, setCors } from '../lib/apiDb';
+import { ensureCoreSchema, getPool, setCors } from '../lib/apiDb.js';
 
 function headerValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value || '';

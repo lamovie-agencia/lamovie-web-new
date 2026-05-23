@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { AuthenticatedRequest, authenticateToken, ensureCoreSchema, getId, getPool, setCors } from '../../../../lib/apiDb';
+import { AuthenticatedRequest, authenticateToken, ensureCoreSchema, getId, getPool, setCors } from '../../../../lib/apiDb.js';
 
 function signedUrl(bucket: string, key: string, minutes = 15) {
   const expires = Math.floor(Date.now() / 1000) + minutes * 60;
