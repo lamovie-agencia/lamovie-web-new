@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  AlertCircle, Briefcase, Calendar, CheckCircle2, DollarSign, Plus,
-  Receipt, RefreshCcw, Save, Trash2, Users, Wallet
+  AlertCircle, BarChart3, Briefcase, CheckCircle2, DollarSign, Plus,
+  Receipt, RefreshCcw, Save, ShieldCheck, Target, Trash2, Users, Wallet
 } from 'lucide-react';
 import { adminService } from '../lib/adminService';
 import { useAuth } from '../lib/authService';
@@ -19,10 +19,31 @@ const money = (amountUSD: number, currency: 'USD' | 'COP') => {
 const required = (value: unknown) => String(value ?? '').trim().length > 0;
 const FIELD = 'w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white text-sm focus:border-yellow-500 focus:outline-none [color-scheme:dark]';
 const BUDGET = 'bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white/70';
+const BUSINESS_RULE = [
+  ['Operacion', 40],
+  ['Reinversion', 20],
+  ['Impuestos', 15],
+  ['Utilidad empresa', 15],
+  ['Fondo emergencia', 10]
+];
+const PERSONAL_RULE = [
+  ['Gastos personales', 40],
+  ['Inversiones', 25],
+  ['Ahorro', 15],
+  ['Educacion', 10],
+  ['Diversion', 5],
+  ['Emergencia', 5]
+];
+const AREA_MIX = [
+  ['Produccion audiovisual', 45],
+  ['Marketing digital', 35],
+  ['Branding', 10],
+  ['Eventos', 10]
+];
 
 export function FinanceModule() {
   const { token } = useAuth();
-  const [subTab, setSubTab] = useState<'overview' | 'contracts' | 'transactions' | 'team'>('overview');
+  const [subTab, setSubTab] = useState<'overview' | 'contracts' | 'transactions' | 'team' | 'personal' | 'automations'>('overview');
   const [currency, setCurrency] = useState<'USD' | 'COP'>('USD');
   const [contracts, setContracts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -99,9 +120,23 @@ export function FinanceModule() {
     const income = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + Number(t.amountUSD || 0), 0);
     const companyExpense = transactions.filter(t => t.type === 'expense' && t.scope === 'company').reduce((acc, t) => acc + Number(t.amountUSD || 0), 0);
     const personalExpense = transactions.filter(t => t.type === 'expense' && t.scope === 'personal').reduce((acc, t) => acc + Number(t.amountUSD || 0), 0);
+    const investment = transactions.filter(t => t.type === 'investment').reduce((acc, t) => acc + Number(t.amountUSD || 0), 0);
+    const transfer = transactions.filter(t => t.type === 'transfer').reduce((acc, t) => acc + Number(t.amountUSD || 0), 0);
     const mrr = contracts.filter(c => c.status === 'active' && c.billingCycle === 'monthly').reduce((acc, c) => acc + Number(c.valueUSD || 0), 0);
     const grossContracts = contracts.reduce((acc, c) => acc + Number(c.valueUSD || 0), 0);
-    return { income, companyExpense, personalExpense, mrr, grossContracts, net: income - companyExpense - personalExpense };
+    const receivable = contracts.filter(c => c.status !== 'active').reduce((acc, c) => acc + Number(c.valueUSD || 0), 0);
+    const projected = mrr + receivable;
+    const adSpend = transactions.filter(t => String(t.category || '').toLowerCase().includes('publicidad') || String(t.workType || '').toLowerCase().includes('ads')).reduce((acc, t) => acc + Number(t.amountUSD || 0), 0);
+    const marketingIncome = transactions.filter(t => t.type === 'income' && (String(t.category || '').toLowerCase().includes('marketing') || String(t.workType || '').toLowerCase().includes('ads'))).reduce((acc, t) => acc + Number(t.amountUSD || 0), 0);
+    const roas = adSpend > 0 ? marketingIncome / adSpend : 0;
+    const activeContracts = contracts.filter(c => c.status === 'active').length;
+    const retention = contracts.length > 0 ? (activeContracts / contracts.length) * 100 : 0;
+    const productivity = team.length > 0 ? Math.min(100, (transactions.length / Math.max(team.length, 1)) * 12) : 0;
+    return {
+      income, companyExpense, personalExpense, investment, transfer, mrr, grossContracts,
+      receivable, projected, adSpend, marketingIncome, roas, retention, productivity,
+      net: income - companyExpense - personalExpense - investment
+    };
   }, [transactions, contracts]);
 
   const alerts = useMemo(() => {
@@ -110,8 +145,34 @@ export function FinanceModule() {
     inSeven.setDate(now.getDate() + 7);
     const endingContracts = contracts.filter(c => c.endDate && new Date(c.endDate) <= inSeven);
     const billingDue = contracts.filter(c => c.nextBilling && new Date(c.nextBilling) <= inSeven);
-    return { endingContracts, billingDue };
-  }, [contracts]);
+    const cashLow = totals.net < Math.max(totals.companyExpense * 0.25, 500);
+    const campaignLow = totals.adSpend > 0 && totals.roas > 0 && totals.roas < 1.5;
+    return { endingContracts, billingDue, cashLow, campaignLow };
+  }, [contracts, totals]);
+
+  const automationRegister = useMemo(() => {
+    const events = [
+      {
+        title: 'Pago recibido',
+        rule: 'Genera factura, activa contrato/proyecto y crea tarea de kickoff',
+        status: 'Activo',
+        level: 'success'
+      },
+      {
+        title: 'Campana baja rendimiento',
+        rule: alerts.campaignLow ? 'ROAS bajo: pausar anuncios y revisar creativo' : 'ROAS estable o sin datos de pauta',
+        status: alerts.campaignLow ? 'Alerta' : 'Monitoreando',
+        level: alerts.campaignLow ? 'danger' : 'normal'
+      },
+      {
+        title: 'Flujo de caja bajo',
+        rule: alerts.cashLow ? 'Activar alerta financiera y revisar cobros/gastos' : 'Caja dentro del rango operativo',
+        status: alerts.cashLow ? 'Alerta' : 'OK',
+        level: alerts.cashLow ? 'danger' : 'success'
+      }
+    ];
+    return events;
+  }, [alerts]);
 
   const validateBudget = () => {
     const totalPercent = ['reinvestPercent', 'savingsPercent', 'payrollPercent', 'ownerProfitPercent']
@@ -219,9 +280,9 @@ export function FinanceModule() {
         <div className="flex flex-wrap items-center gap-2">
           <button onClick={() => setCurrency(currency === 'USD' ? 'COP' : 'USD')} className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-xs font-black uppercase">{currency}</button>
           <button onClick={fetchFinance} className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-xs font-black uppercase flex items-center gap-2"><RefreshCcw size={14} /> Sync</button>
-          {(['overview', 'contracts', 'transactions', 'team'] as const).map(tab => (
+          {(['overview', 'contracts', 'transactions', 'team', 'personal', 'automations'] as const).map(tab => (
             <button key={tab} onClick={() => setSubTab(tab)} className={`px-4 py-3 rounded-xl text-xs font-black uppercase border ${subTab === tab ? 'bg-yellow-500 text-black border-yellow-500' : 'bg-white/5 text-white/50 border-white/10'}`}>
-              {tab === 'overview' ? 'Panel' : tab === 'contracts' ? 'Contratos' : tab === 'transactions' ? 'Caja' : 'Equipo'}
+              {tab === 'overview' ? 'Panel' : tab === 'contracts' ? 'Contratos' : tab === 'transactions' ? 'Caja' : tab === 'team' ? 'Equipo' : tab === 'personal' ? 'Personal' : 'Automatizaciones'}
             </button>
           ))}
         </div>
@@ -252,13 +313,87 @@ export function FinanceModule() {
             ))}
           </div>
 
+          <div className="grid xl:grid-cols-3 gap-6">
+            <div className="xl:col-span-2 bg-white/5 border border-white/10 rounded-[32px] p-8">
+              <h3 className="text-xl font-black uppercase mb-6 flex items-center gap-3"><BarChart3 className="text-yellow-400" /> KPIs ejecutivos</h3>
+              <div className="grid md:grid-cols-3 gap-4">
+                {[
+                  ['Ventas mensuales', totals.income, 'Crecimiento'],
+                  ['Rentabilidad', totals.income > 0 ? (totals.net / totals.income) * 100 : 0, 'Beneficio %'],
+                  ['ROAS', totals.roas, 'Publicidad'],
+                  ['Retencion clientes', totals.retention, 'Fidelizacion %'],
+                  ['Productividad', totals.productivity, 'Eficiencia %'],
+                  ['Cuentas por cobrar', totals.receivable, 'Cobranza']
+                ].map(([label, value, goal]: any) => (
+                  <div key={label} className="bg-black/30 border border-white/10 rounded-2xl p-4">
+                    <p className="text-[10px] uppercase tracking-widest text-white/40 font-black">{label}</p>
+                    <p className="text-2xl font-black mt-2">
+                      {label === 'ROAS' ? `${Number(value).toFixed(2)}x` : String(goal).includes('%') ? `${Number(value).toFixed(1)}%` : money(value, currency)}
+                    </p>
+                    <p className="text-[10px] uppercase tracking-widest text-yellow-400 mt-2">{goal}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-[32px] p-8">
+              <h3 className="text-xl font-black uppercase mb-6 flex items-center gap-3"><Target className="text-blue-400" /> Areas del negocio</h3>
+              <div className="space-y-4">
+                {AREA_MIX.map(([label, pct]: any) => (
+                  <div key={label}>
+                    <div className="flex justify-between text-[10px] uppercase tracking-widest text-white/50 font-black mb-2">
+                      <span>{label}</span><span>{pct}%</span>
+                    </div>
+                    <div className="h-2 bg-black/40 rounded-full overflow-hidden">
+                      <div className="h-full bg-yellow-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div className="bg-white/5 border border-white/10 rounded-[32px] p-8">
+              <h3 className="text-xl font-black uppercase mb-6 flex items-center gap-3"><ShieldCheck className="text-green-400" /> Distribucion inteligente empresa</h3>
+              <div className="grid sm:grid-cols-2 gap-3">
+                {BUSINESS_RULE.map(([label, pct]: any) => (
+                  <div key={label} className="bg-black/30 border border-white/10 rounded-2xl p-4">
+                    <p className="text-[10px] uppercase tracking-widest text-white/40 font-black">{label} - {pct}%</p>
+                    <p className="text-xl font-black mt-2">{money(Math.max(totals.net, 0) * pct / 100, currency)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-[32px] p-8">
+              <h3 className="text-xl font-black uppercase mb-6 flex items-center gap-3"><Wallet className="text-purple-400" /> Flujo de caja</h3>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <span className={BUDGET}>Disponible {money(totals.net, currency)}</span>
+                <span className={BUDGET}>Proyectado {money(totals.projected, currency)}</span>
+                <span className={BUDGET}>Por cobrar {money(totals.receivable, currency)}</span>
+                <span className={BUDGET}>Deudas/Gastos {money(totals.companyExpense + totals.personalExpense, currency)}</span>
+              </div>
+            </div>
+          </div>
+
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="bg-white/5 border border-white/10 rounded-[32px] p-8">
               <h3 className="text-xl font-black uppercase mb-6 flex items-center gap-3"><AlertCircle className="text-yellow-400" /> Alertas</h3>
-              {[...alerts.endingContracts.map(c => ({ ...c, kind: 'Cierre de contrato' })), ...alerts.billingDue.map(c => ({ ...c, kind: 'Facturacion proxima' }))].length === 0 ? (
+              {[...alerts.endingContracts.map(c => ({ ...c, kind: 'Cierre de contrato' })), ...alerts.billingDue.map(c => ({ ...c, kind: 'Facturacion proxima' }))].length === 0 && !alerts.cashLow && !alerts.campaignLow ? (
                 <p className="text-white/40 text-sm">No hay vencimientos criticos en los proximos 7 dias.</p>
               ) : (
                 <div className="space-y-3">
+                  {alerts.cashLow && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4">
+                      <p className="text-red-400 text-xs font-black uppercase tracking-widest">Flujo de caja bajo</p>
+                      <p className="text-white font-bold mt-1">Revisar cobros pendientes y pausar gastos variables.</p>
+                    </div>
+                  )}
+                  {alerts.campaignLow && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4">
+                      <p className="text-red-400 text-xs font-black uppercase tracking-widest">Campana con bajo rendimiento</p>
+                      <p className="text-white font-bold mt-1">ROAS {totals.roas.toFixed(2)}x. Sugerencia: pausar anuncios y revisar oferta/creativo.</p>
+                    </div>
+                  )}
                   {[...alerts.endingContracts.map(c => ({ ...c, kind: 'Cierre de contrato' })), ...alerts.billingDue.map(c => ({ ...c, kind: 'Facturacion proxima' }))].map((item, index) => (
                     <div key={`${item.id}-${item.kind}-${index}`} className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4">
                       <p className="text-yellow-400 text-xs font-black uppercase tracking-widest">{item.kind}</p>
@@ -438,6 +573,85 @@ export function FinanceModule() {
                 {member.notes && <p className="text-sm text-white/50 mt-3">{member.notes}</p>}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {subTab === 'personal' && (
+        <div className="grid xl:grid-cols-2 gap-8">
+          <div className="bg-white/5 border border-white/10 rounded-[32px] p-8">
+            <h3 className="text-xl font-black uppercase mb-6 flex items-center gap-3"><Wallet className="text-purple-400" /> Portal personal del dueño</h3>
+            <div className="grid sm:grid-cols-2 gap-4 mb-8">
+              <div className="bg-black/30 border border-white/10 rounded-2xl p-5">
+                <p className="text-[10px] uppercase tracking-widest text-white/40 font-black">Patrimonio neto operativo</p>
+                <p className="text-3xl font-black mt-2">{money(Math.max(totals.net, 0), currency)}</p>
+              </div>
+              <div className="bg-black/30 border border-white/10 rounded-2xl p-5">
+                <p className="text-[10px] uppercase tracking-widest text-white/40 font-black">Flujo personal mensual</p>
+                <p className="text-3xl font-black mt-2">{money(totals.personalExpense * -1, currency)}</p>
+              </div>
+              <div className="bg-black/30 border border-white/10 rounded-2xl p-5">
+                <p className="text-[10px] uppercase tracking-widest text-white/40 font-black">Inversiones registradas</p>
+                <p className="text-3xl font-black mt-2">{money(totals.investment, currency)}</p>
+              </div>
+              <div className="bg-black/30 border border-white/10 rounded-2xl p-5">
+                <p className="text-[10px] uppercase tracking-widest text-white/40 font-black">Deudas/gastos personales</p>
+                <p className="text-3xl font-black mt-2">{money(totals.personalExpense, currency)}</p>
+              </div>
+            </div>
+            <h4 className="text-xs font-black uppercase tracking-widest text-white/40 mb-4">Fuentes personales recomendadas</h4>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {[
+                ['Salario fijo', 40],
+                ['Dividendos', 30],
+                ['Inversiones', 20],
+                ['Otros', 10]
+              ].map(([label, pct]: any) => (
+                <span key={label} className={BUDGET}>{label} {pct}% - {money(Math.max(totals.net, 0) * pct / 100, currency)}</span>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 rounded-[32px] p-8">
+            <h3 className="text-xl font-black uppercase mb-6 flex items-center gap-3"><ShieldCheck className="text-green-400" /> Metodo CEO financiero</h3>
+            <div className="space-y-4">
+              {PERSONAL_RULE.map(([label, pct]: any) => (
+                <div key={label} className="bg-black/30 border border-white/10 rounded-2xl p-4">
+                  <div className="flex justify-between text-[10px] uppercase tracking-widest text-white/50 font-black mb-2">
+                    <span>{label}</span><span>{pct}%</span>
+                  </div>
+                  <p className="text-xl font-black">{money(Math.max(totals.net, 0) * pct / 100, currency)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {subTab === 'automations' && (
+        <div className="grid lg:grid-cols-3 gap-6">
+          {automationRegister.map(item => (
+            <div key={item.title} className={`rounded-[32px] p-8 border ${
+              item.level === 'danger' ? 'bg-red-500/10 border-red-500/20' : item.level === 'success' ? 'bg-green-500/10 border-green-500/20' : 'bg-white/5 border-white/10'
+            }`}>
+              <div className="w-12 h-12 rounded-2xl bg-black/30 border border-white/10 flex items-center justify-center mb-6">
+                {item.level === 'danger' ? <AlertCircle className="text-red-400" /> : <CheckCircle2 className="text-green-400" />}
+              </div>
+              <h3 className="text-xl font-black uppercase mb-3">{item.title}</h3>
+              <p className="text-white/60 text-sm leading-relaxed mb-6">{item.rule}</p>
+              <span className="inline-flex px-3 py-2 rounded-xl bg-black/30 border border-white/10 text-[10px] font-black uppercase tracking-widest">{item.status}</span>
+            </div>
+          ))}
+          <div className="lg:col-span-3 bg-white/5 border border-white/10 rounded-[32px] p-8">
+            <h3 className="text-xl font-black uppercase mb-6">Comprobaciones importantes del sistema</h3>
+            <div className="grid md:grid-cols-3 gap-4">
+              <span className={BUDGET}>Contratos sincronizados: {contracts.length}</span>
+              <span className={BUDGET}>Movimientos en caja: {transactions.length}</span>
+              <span className={BUDGET}>Colaboradores activos: {team.filter(m => m.active).length}</span>
+              <span className={BUDGET}>Facturacion por cobrar: {money(totals.receivable, currency)}</span>
+              <span className={BUDGET}>ROAS actual: {totals.roas.toFixed(2)}x</span>
+              <span className={BUDGET}>Caja disponible: {money(totals.net, currency)}</span>
+            </div>
           </div>
         </div>
       )}

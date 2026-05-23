@@ -1773,7 +1773,54 @@ async function startServer() {
           scope, payment_method AS "paymentMethod", work_type AS "workType", notes,
           collaborator_id AS "collaboratorId", project_id AS "projectId", contract_id AS "contractId", activity_date AS "activityDate"
       `, [date || new Date().toISOString().split('T')[0], description, type, Number(amountUSD) || 0, category, scope || 'company', paymentMethod || '', workType || '', notes || '', collaboratorId || null, projectId || null, contractId || null, activityDate || date || new Date().toISOString().split('T')[0]]);
-      res.json(result.rows[0]);
+      const transaction = result.rows[0];
+      const automations: string[] = [];
+
+      if (transaction.type === "income" && transaction.contractId) {
+        const contractResult = await pool.query("SELECT * FROM admin_contracts WHERE id = $1", [transaction.contractId]);
+        const contract = contractResult.rows[0];
+        if (contract) {
+          await pool.query("UPDATE admin_contracts SET status = 'active' WHERE id = $1", [contract.id]);
+          automations.push("Contrato activado");
+
+          const projectName = `${contract.service} - ${contract.client}`;
+          const existingProject = await pool.query("SELECT id FROM projects WHERE LOWER(name) = LOWER($1) LIMIT 1", [projectName]);
+          if (!existingProject.rows[0]) {
+            await pool.query(
+              `INSERT INTO projects (name, type, status, progress, team, assets, due_date, budget, color)
+               VALUES ($1, $2, 'planning', 0, $3, 0, $4, $5, 'from-green-500 to-emerald-500')`,
+              [projectName, contract.billing_cycle === "monthly" ? "Retainer" : "Proyecto", ["PM", "FIN"], contract.end_date || contract.next_billing || transaction.date, Number(contract.value_usd) || 0]
+            );
+            automations.push("Proyecto activado");
+          }
+
+          await pool.query(
+            `INSERT INTO admin_documents (name, type, client, status, author, content_markdown)
+             VALUES ($1, 'invoice', $2, 'issued', 'Sistema Financiero', $3)`,
+            [
+              `Factura ${contract.client} ${transaction.date}`,
+              contract.client,
+              `# Factura LA MOVIE\n\nCliente: ${contract.client}\nServicio: ${contract.service}\nValor: ${transaction.amountUSD} USD\nFecha: ${transaction.date}\nEstado: Emitida automaticamente por pago registrado.`
+            ]
+          );
+          automations.push("Factura generada");
+
+          await pool.query(
+            `INSERT INTO admin_tasks (title, description, priority, status, due_date)
+             VALUES ($1, $2, 'high', 'pending', $3)`,
+            [`Kickoff equipo - ${contract.client}`, `Pago registrado para ${contract.service}. Activar entregables, brief y agenda de produccion.`, transaction.activityDate || transaction.date]
+          );
+          automations.push("Equipo notificado por tarea");
+
+          await pool.query(
+            `INSERT INTO admin_ai_logs (platform, event_type, payload, status)
+             VALUES ('finance', 'payment_automation', $1, 'success')`,
+            [JSON.stringify({ transactionId: transaction.id, contractId: contract.id, automations })]
+          );
+        }
+      }
+
+      res.json({ ...transaction, automations });
     } catch (err) {
       res.status(500).json({ error: "Failed to create transaction" });
     }

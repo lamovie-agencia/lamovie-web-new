@@ -54,7 +54,70 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           activityDate || date || new Date().toISOString().split('T')[0]
         ]
       );
-      return res.status(201).json(result.rows[0]);
+      const transaction = result.rows[0];
+      const automations: string[] = [];
+
+      if (transaction.type === 'income' && transaction.contractId) {
+        const contractResult = await db.query(
+          'SELECT * FROM admin_contracts WHERE id = $1',
+          [transaction.contractId]
+        );
+        const contract = contractResult.rows[0];
+
+        if (contract) {
+          await db.query("UPDATE admin_contracts SET status = 'active' WHERE id = $1", [contract.id]);
+          automations.push('Contrato activado');
+
+          const existingProject = await db.query(
+            'SELECT id FROM projects WHERE LOWER(name) = LOWER($1) LIMIT 1',
+            [`${contract.service} - ${contract.client}`]
+          );
+          if (!existingProject.rows[0]) {
+            await db.query(
+              `INSERT INTO projects (name, type, status, progress, team, assets, due_date, budget, color)
+               VALUES ($1, $2, 'planning', 0, $3, 0, $4, $5, 'from-green-500 to-emerald-500')`,
+              [
+                `${contract.service} - ${contract.client}`,
+                contract.billing_cycle === 'monthly' ? 'Retainer' : 'Proyecto',
+                ['PM', 'FIN'],
+                contract.end_date || contract.next_billing || transaction.date,
+                Number(contract.value_usd) || 0
+              ]
+            );
+            automations.push('Proyecto activado');
+          }
+
+          await db.query(
+            `INSERT INTO admin_documents (name, type, client, status, author, content_markdown)
+             VALUES ($1, 'invoice', $2, 'issued', 'Sistema Financiero', $3)`,
+            [
+              `Factura ${contract.client} ${transaction.date}`,
+              contract.client,
+              `# Factura LA MOVIE\n\nCliente: ${contract.client}\nServicio: ${contract.service}\nValor: ${transaction.amountUSD} USD\nFecha: ${transaction.date}\nEstado: Emitida automaticamente por pago registrado.`
+            ]
+          );
+          automations.push('Factura generada');
+
+          await db.query(
+            `INSERT INTO admin_tasks (title, description, priority, status, due_date)
+             VALUES ($1, $2, 'high', 'pending', $3)`,
+            [
+              `Kickoff equipo - ${contract.client}`,
+              `Pago registrado para ${contract.service}. Activar entregables, brief y agenda de produccion.`,
+              transaction.activityDate || transaction.date
+            ]
+          );
+          automations.push('Equipo notificado por tarea');
+
+          await db.query(
+            `INSERT INTO admin_ai_logs (platform, event_type, payload, status)
+             VALUES ('finance', 'payment_automation', $1, 'success')`,
+            [JSON.stringify({ transactionId: transaction.id, contractId: contract.id, automations })]
+          );
+        }
+      }
+
+      return res.status(201).json({ ...transaction, automations });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });
