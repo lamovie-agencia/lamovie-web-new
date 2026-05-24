@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminService } from '../lib/adminService';
+import { adminService, setStoredAdminToken } from '../lib/adminService';
 import { Lock, User, LogIn } from 'lucide-react';
 
 const AdminLogin: React.FC = () => {
@@ -13,7 +13,7 @@ const AdminLogin: React.FC = () => {
     e.preventDefault();
     try {
       const { token } = await adminService.login(username, password);
-      localStorage.setItem('adminToken', token);
+      setStoredAdminToken(token);
       navigate('/admin/dashboard');
     } catch (err) {
       setError('Credenciales inválidas');

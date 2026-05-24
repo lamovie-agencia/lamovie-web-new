@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
+import { getStoredAdminToken } from './adminService';
 
 export function useAuth() {
-  const [token, setToken] = useState<string | null>(localStorage.getItem('adminToken'));
+  const [token, setToken] = useState<string | null>(getStoredAdminToken());
 
   useEffect(() => {
     const handleStorageChange = () => {
-      setToken(localStorage.getItem('adminToken'));
+      setToken(getStoredAdminToken());
     };
-    
-    // Check key updates
+
     const interval = setInterval(() => {
-      const current = localStorage.getItem('adminToken');
+      const current = getStoredAdminToken();
       if (current !== token) {
         setToken(current);
       }

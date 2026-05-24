@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, Component } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { adminService } from '../lib/adminService';
+import { adminService, clearStoredAdminToken, getStoredAdminToken } from '../lib/adminService';
 import { ProjectsModule } from './ProjectsModule';
 import { LeadsModule } from './LeadsModule';
 import { FinanceModule } from './FinanceModule';
@@ -136,7 +136,7 @@ const AdminDashboard: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const navigate = useNavigate();
-  const token = localStorage.getItem('adminToken');
+  const token = getStoredAdminToken();
   const [profile, setProfile] = useState<{ username: string; name: string; role: string; avatar: string } | null>(null);
   const [isVerifying, setIsVerifying] = useState(true);
 
@@ -249,7 +249,7 @@ const AdminDashboard: React.FC = () => {
   });
 
   const fetchData = useCallback(async () => {
-    const currentToken = localStorage.getItem('adminToken');
+    const currentToken = getStoredAdminToken();
     if (!currentToken) return;
     setLoading(true);
     try {
@@ -318,7 +318,7 @@ const AdminDashboard: React.FC = () => {
 
   // 1. Session verification & Profile hydration
   const verifySession = useCallback(async () => {
-    const currentToken = localStorage.getItem('adminToken');
+    const currentToken = getStoredAdminToken();
     if (!currentToken) {
       navigate('/admin/login', { replace: true });
       return;
@@ -332,7 +332,7 @@ const AdminDashboard: React.FC = () => {
       await fetchData();
     } catch (err) {
       console.error("🔒 SECURE USER LIFECYCLE - Verification Failed:", err);
-      localStorage.removeItem('adminToken');
+      clearStoredAdminToken();
       navigate('/admin/login', { replace: true });
     } finally {
       setIsVerifying(false);
@@ -351,7 +351,7 @@ const AdminDashboard: React.FC = () => {
       console.warn("Server-side logout could not complete", err);
     }
     // Clean memory spaces completely
-    localStorage.removeItem('adminToken');
+    clearStoredAdminToken();
     setProfile(null);
     navigate('/admin/login', { replace: true });
     
@@ -376,7 +376,7 @@ const AdminDashboard: React.FC = () => {
 
   // 4. Activity detection for 15-minute inactivity auto-logout
   useEffect(() => {
-    const storedToken = localStorage.getItem('adminToken');
+    const storedToken = getStoredAdminToken();
     if (!storedToken) return;
 
     let timeoutId: any;
@@ -634,7 +634,7 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleQuickStatusChange = async (client: any, newStatus: string) => {
-    const currentToken = localStorage.getItem('adminToken');
+    const currentToken = getStoredAdminToken();
     if (!currentToken) return;
     try {
       const updatedPayload = {
@@ -659,7 +659,7 @@ const AdminDashboard: React.FC = () => {
   };
 
   const handleConvertClient = async (client: any) => {
-    const currentToken = localStorage.getItem('adminToken');
+    const currentToken = getStoredAdminToken();
     if (!currentToken) return;
     if (!confirm(`¿Quieres convertir a ${client.name} en un cliente activo con proyecto, contrato y documentos automáticos?`)) return;
 
@@ -687,7 +687,8 @@ const AdminDashboard: React.FC = () => {
       if (type === 'crm') await adminService.deleteCrmClient(id, token);
       fetchData();
     } catch (err) {
-      alert('Error al eliminar');
+      const message = err instanceof Error ? err.message : 'No se pudo eliminar el elemento.';
+      alert(message);
     }
   };
 

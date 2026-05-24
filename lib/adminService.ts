@@ -1,13 +1,37 @@
 const API_URL = '/api';
 
+export const getStoredAdminToken = () => {
+  const currentToken = localStorage.getItem('adminToken');
+  if (currentToken) return currentToken;
+
+  const legacyToken = localStorage.getItem('admin_token');
+  if (legacyToken) {
+    localStorage.setItem('adminToken', legacyToken);
+    localStorage.removeItem('admin_token');
+    return legacyToken;
+  }
+
+  return null;
+};
+
+export const setStoredAdminToken = (token: string) => {
+  localStorage.setItem('adminToken', token);
+  localStorage.removeItem('admin_token');
+};
+
+export const clearStoredAdminToken = () => {
+  localStorage.removeItem('adminToken');
+  localStorage.removeItem('admin_token');
+};
+
 // Interceptor helper: listen for auth failures or logout triggers in the app
 export const logoutUser = () => {
-  localStorage.removeItem('adminToken');
+  clearStoredAdminToken();
   window.dispatchEvent(new CustomEvent('admin-logout'));
 };
 
 const secureFetch = async (url: string, options: RequestInit = {}, suppliedToken?: string) => {
-  const token = suppliedToken || localStorage.getItem('adminToken');
+  const token = suppliedToken || getStoredAdminToken();
   const headers = {
     ...options.headers,
   } as any;
