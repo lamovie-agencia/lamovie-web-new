@@ -2,6 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import adminLogin from '../api-src/admin/login.js';
 import adminProfile from '../api-src/admin/profile.js';
 import adminStatus from '../api-src/admin/status.js';
+import adminConvertClient from '../api-src/admin/convert-client.js';
 import adminCrm from '../api-src/admin-crm.js';
 import adminCrmItem from '../api-src/admin-crm/[id].js';
 import adminNotes from '../api-src/admin-notes.js';
@@ -43,6 +44,7 @@ const routeHandlers: Record<string, ApiHandler> = {
   'admin/login': adminLogin,
   'admin/profile': adminProfile,
   'admin/status': adminStatus,
+  'admin/convert-client': adminConvertClient,
   'admin-crm': adminCrm,
   'admin-crm/[id]': adminCrmItem,
   'admin-notes': adminNotes,

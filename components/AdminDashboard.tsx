@@ -658,6 +658,21 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleConvertClient = async (client: any) => {
+    const currentToken = localStorage.getItem('adminToken');
+    if (!currentToken) return;
+    if (!confirm(`¿Quieres convertir a ${client.name} en un cliente activo con proyecto, contrato y documentos automáticos?`)) return;
+
+    try {
+      await adminService.convertClient(client.id, currentToken);
+      await fetchData();
+      alert(`Cliente ${client.name} convertido correctamente.`);
+    } catch (err) {
+      console.error('Failed client conversion:', err);
+      alert('No se pudo convertir el cliente en este momento.');
+    }
+  };
+
   const handleDelete = async (type: Tab, id: number) => {
     if (!token || !confirm('¿Estás seguro de eliminar este elemento?')) return;
     try {
@@ -1516,7 +1531,14 @@ const AdminDashboard: React.FC = () => {
                                 ))}
                               </div>
                            </div>
-                           <div className="flex items-center gap-2 shrink-0">
+                           <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                              <button
+                                onClick={() => handleConvertClient(client)}
+                                disabled={['active', 'closed', 'converted'].includes(client.status)}
+                                className={`px-4 py-3 rounded-[16px] text-[10px] font-black uppercase tracking-widest transition-all border ${['active', 'closed', 'converted'].includes(client.status) ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 cursor-not-allowed' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500 hover:text-white'}`}
+                              >
+                                {['active', 'closed', 'converted'].includes(client.status) ? 'Convertido' : 'Convertir'}
+                              </button>
                               <button onClick={() => {
                                 setEditingId(client.id);
                                 setCrmForm({ name: client.name, email: client.email || '', phone: client.phone || '', status: client.status, value: client.value || '', tag: client.tag || '', reminder: client.reminder ? new Date(client.reminder).toISOString().slice(0,16) : '' });

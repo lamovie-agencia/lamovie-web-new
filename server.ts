@@ -11,6 +11,7 @@ import fs from "fs";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import geoip from "geoip-lite";
+import adminConvertClient from "./api-src/admin/convert-client.ts";
 
 dotenv.config();
 
@@ -720,6 +721,10 @@ async function startServer() {
       role: "Administrador Master",
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80"
     });
+  });
+
+  app.post("/api/admin/convert-client", authenticateToken, async (req, res) => {
+    await adminConvertClient(req as any, res as any);
   });
 
   // Logout

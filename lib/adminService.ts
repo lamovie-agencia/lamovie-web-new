@@ -289,6 +289,15 @@ export const adminService = {
     return res.json();
   },
 
+  convertClient: async (clientId: number, token?: string) => {
+    const res = await secureFetch(`${API_URL}/admin/convert-client`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId }),
+    }, token);
+    return res.json();
+  },
+
   // Notes
   getNotes: async (token?: string) => {
     const res = await secureFetch(`${API_URL}/admin-notes`, {}, token);

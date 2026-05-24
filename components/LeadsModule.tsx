@@ -27,6 +27,18 @@ export function LeadsModule() {
     fetchLeads();
   };
 
+  const convertLead = async (lead: any) => {
+    if (!token) return;
+    if (['active', 'closed', 'converted'].includes(lead.status)) return;
+
+    try {
+      await adminService.convertClient(lead.id, token);
+      await fetchLeads();
+    } catch (error) {
+      console.error('Failed lead conversion:', error);
+    }
+  };
+
   const fetchLeads = useCallback(async () => {
     if (!token) return;
     try {
@@ -195,6 +207,13 @@ export function LeadsModule() {
                     </span>
                   </td>
                   <td className="py-4 px-4 text-right flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => convertLead(lead)}
+                      disabled={['active', 'closed', 'converted'].includes(lead.status)}
+                      className={`px-3 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${['active', 'closed', 'converted'].includes(lead.status) ? 'bg-emerald-500/20 text-emerald-300 cursor-not-allowed' : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white'}`}
+                    >
+                      {['active', 'closed', 'converted'].includes(lead.status) ? 'Convertido' : 'Convertir'}
+                    </button>
                     <select
                       className="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-[10px] text-white focus:outline-none [&>option]:bg-gray-900"
                       value={lead.status || 'new'}
