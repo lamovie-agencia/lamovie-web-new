@@ -11,12 +11,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = getPool();
 
     if (req.method === 'GET') {
+      const search = String(req.query.search || '').trim();
+      const status = String(req.query.status || '').trim();
+      const origin = String(req.query.origin || '').trim();
+      const clauses: string[] = [];
+      const values: any[] = [];
+      let index = 1;
+
+      if (status) {
+        clauses.push(`status = $${index++}`);
+        values.push(status);
+      }
+
+      if (origin) {
+        clauses.push(`origin ILIKE $${index++}`);
+        values.push(`%${origin}%`);
+      }
+
+      if (search) {
+        clauses.push(`(name ILIKE $${index++} OR email ILIKE $${index++} OR phone ILIKE $${index++} OR service ILIKE $${index++} OR tag ILIKE $${index++})`);
+        const like = `%${search}%`;
+        values.push(like, like, like, like, like);
+      }
+
+      const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
       const result = await db.query(`
         SELECT *,
                created_at AS date
         FROM admin_crm_clients
+        ${where}
         ORDER BY created_at DESC, id DESC
-      `);
+      `, values);
       return res.status(200).json(result.rows);
     }
 

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  AlertCircle, BarChart3, Briefcase, CheckCircle2, DollarSign, Plus,
-  Receipt, RefreshCcw, Save, ShieldCheck, Target, Trash2, Users, Wallet
+  AlertCircle, BarChart3, Briefcase, CheckCircle2, Clock, DollarSign, Plus,
+  Receipt, RefreshCcw, Save, Search, ShieldCheck, Target, Trash2, Users, Wallet
 } from 'lucide-react';
 import { adminService } from '../lib/adminService';
 import { useAuth } from '../lib/authService';
@@ -48,8 +48,12 @@ export function FinanceModule() {
   const [contracts, setContracts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [team, setTeam] = useState<any[]>([]);
+  const [crmClients, setCrmClients] = useState<any[]>([]);
   const [notice, setNotice] = useState<{ type: 'ok' | 'error'; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [contractSearch, setContractSearch] = useState('');
+  const [contractStatus, setContractStatus] = useState<'all' | 'active' | 'pending' | 'inactive'>('all');
+  const [transactionSearch, setTransactionSearch] = useState('');
 
   const [contractForm, setContractForm] = useState({
     client: '',
@@ -98,14 +102,16 @@ export function FinanceModule() {
   const fetchFinance = useCallback(async () => {
     if (!token) return;
     try {
-      const [c, t, members] = await Promise.all([
+      const [c, t, members, clients] = await Promise.all([
         adminService.getContracts(token),
         adminService.getTransactions(token),
-        adminService.getTeamMembers(token)
+        adminService.getTeamMembers(token),
+        adminService.getCrmClients(token)
       ]);
       setContracts(Array.isArray(c) ? c : []);
       setTransactions(Array.isArray(t) ? t : []);
       setTeam(Array.isArray(members) ? members : []);
+      setCrmClients(Array.isArray(clients) ? clients : []);
       setNotice({ type: 'ok', text: 'Datos sincronizados con PostgreSQL.' });
     } catch (error: any) {
       setNotice({ type: 'error', text: error?.message || 'No se pudo sincronizar finanzas.' });
@@ -139,16 +145,43 @@ export function FinanceModule() {
     };
   }, [transactions, contracts]);
 
+  const billingSchedule = useMemo(() => {
+    const now = new Date();
+    return contracts
+      .filter(c => c.nextBilling)
+      .map(c => ({
+        ...c,
+        dueDate: new Date(c.nextBilling),
+        daysUntil: Math.ceil((new Date(c.nextBilling).getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      }))
+      .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+  }, [contracts]);
+
+  const filteredContracts = useMemo(() => {
+    return contracts.filter(contract => {
+      const matchesSearch = `${contract.client || ''} ${contract.service || ''}`.toLowerCase().includes(contractSearch.toLowerCase());
+      const matchesStatus = contractStatus === 'all' || contract.status === contractStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }, [contracts, contractSearch, contractStatus]);
+
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(transaction => {
+      const haystack = `${transaction.description || ''} ${transaction.category || ''} ${transaction.paymentMethod || ''} ${transaction.workType || ''}`.toLowerCase();
+      return haystack.includes(transactionSearch.toLowerCase());
+    });
+  }, [transactions, transactionSearch]);
+
   const alerts = useMemo(() => {
     const now = new Date();
     const inSeven = new Date();
     inSeven.setDate(now.getDate() + 7);
     const endingContracts = contracts.filter(c => c.endDate && new Date(c.endDate) <= inSeven);
-    const billingDue = contracts.filter(c => c.nextBilling && new Date(c.nextBilling) <= inSeven);
+    const billingDue = billingSchedule.filter(item => item.daysUntil >= 0 && item.daysUntil <= 7);
     const cashLow = totals.net < Math.max(totals.companyExpense * 0.25, 500);
     const campaignLow = totals.adSpend > 0 && totals.roas > 0 && totals.roas < 1.5;
     return { endingContracts, billingDue, cashLow, campaignLow };
-  }, [contracts, totals]);
+  }, [billingSchedule, contracts, totals]);
 
   const automationRegister = useMemo(() => {
     const events = [
@@ -185,6 +218,34 @@ export function FinanceModule() {
     if (Math.round(totalPercent) !== 100) return 'Los porcentajes de presupuesto deben sumar 100%.';
     return '';
   };
+
+  const syncContractFormFromClient = useCallback((clientId: string) => {
+    const client = crmClients.find(item => String(item.id) === clientId);
+    if (!client) return;
+    setContractForm(prev => ({
+      ...prev,
+      client: client.name || prev.client,
+      service: client.service || prev.service,
+      valueUSD: client.value || client.service_value || prev.valueUSD,
+      startDate: client.contract_start || prev.startDate,
+      endDate: client.contract_end || prev.endDate,
+      billingCycle: client.billing_cycle || prev.billingCycle,
+      notes: [prev.notes, `CRM: ${client.name}`].filter(Boolean).join('\n')
+    }));
+  }, [crmClients]);
+
+  const syncTransactionFromContract = useCallback((contractId: string) => {
+    const contract = contracts.find(item => String(item.id) === contractId);
+    if (!contract) return;
+    setTransactionForm(prev => ({
+      ...prev,
+      contractId,
+      description: prev.description || `${contract.client} - ${contract.service}`,
+      amountUSD: prev.amountUSD || contract.valueUSD || '',
+      type: prev.type || 'income',
+      category: prev.category || 'Operacion'
+    }));
+  }, [contracts]);
 
   const saveContract = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -396,8 +457,14 @@ export function FinanceModule() {
                   )}
                   {[...alerts.endingContracts.map(c => ({ ...c, kind: 'Cierre de contrato' })), ...alerts.billingDue.map(c => ({ ...c, kind: 'Facturacion proxima' }))].map((item, index) => (
                     <div key={`${item.id}-${item.kind}-${index}`} className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4">
-                      <p className="text-yellow-400 text-xs font-black uppercase tracking-widest">{item.kind}</p>
-                      <p className="text-white font-bold mt-1">{item.client} - {item.service}</p>
+                      <div className="flex items-center gap-2 text-yellow-400 text-xs font-black uppercase tracking-widest">
+                        <Clock size={14} />
+                        {item.kind}
+                      </div>
+                      <p className="text-white font-bold mt-2">{item.client} - {item.service}</p>
+                      <p className="text-white/60 text-xs mt-1">
+                        {item.nextBilling ? `Vence: ${new Date(item.nextBilling).toLocaleDateString('es-CO')} • Restan ${item.daysUntil ?? 'N/A'} días` : 'Sin fecha de cobro registrada'}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -426,6 +493,15 @@ export function FinanceModule() {
         <div className="grid xl:grid-cols-12 gap-8">
           <form onSubmit={saveContract} className="xl:col-span-4 bg-white/5 border border-white/10 rounded-[32px] p-8 space-y-4">
             <h3 className="text-xl font-black uppercase flex items-center gap-3"><Save className="text-yellow-400" /> Nuevo contrato</h3>
+            <select value={contractForm.client ? '__selected__' : ''} onChange={(e) => {
+              if (e.target.value === '__selected__') return;
+              syncContractFormFromClient(e.target.value);
+            }} className={FIELD}>
+              <option value="__selected__">Seleccionar cliente CRM</option>
+              {crmClients.map(client => (
+                <option key={client.id} value={client.id}>{client.name} - {client.service}</option>
+              ))}
+            </select>
             <input required placeholder="Cliente" value={contractForm.client} onChange={e => setContractForm({ ...contractForm, client: e.target.value })} className={FIELD} />
             <input required placeholder="Servicio contratado" value={contractForm.service} onChange={e => setContractForm({ ...contractForm, service: e.target.value })} className={FIELD} />
             <div className="grid grid-cols-2 gap-3">
@@ -455,7 +531,19 @@ export function FinanceModule() {
           </form>
 
           <div className="xl:col-span-8 space-y-4">
-            {contracts.map(contract => {
+            <div className="bg-white/5 border border-white/10 rounded-[28px] p-4 flex flex-col md:flex-row gap-3 md:items-center">
+              <div className="flex items-center gap-2 flex-1 bg-black/30 border border-white/10 rounded-2xl px-4 py-3">
+                <Search size={16} className="text-white/40" />
+                <input value={contractSearch} onChange={e => setContractSearch(e.target.value)} placeholder="Buscar cliente o servicio" className="bg-transparent outline-none text-sm text-white placeholder:text-white/30 w-full" />
+              </div>
+              <select value={contractStatus} onChange={e => setContractStatus(e.target.value as any)} className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white">
+                <option value="all">Todos</option>
+                <option value="active">Activos</option>
+                <option value="pending">Pendientes</option>
+                <option value="inactive">Inactivos</option>
+              </select>
+            </div>
+            {filteredContracts.map(contract => {
               const budget = contractBudget(contract);
               return (
                 <div key={contract.id} className="bg-white/5 border border-white/10 rounded-[28px] p-6">
@@ -479,6 +567,11 @@ export function FinanceModule() {
                 </div>
               );
             })}
+            {filteredContracts.length === 0 && (
+              <div className="rounded-[28px] border border-dashed border-white/10 p-10 text-center text-white/40 text-sm">
+                No hay contratos que coincidan con el filtro.
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -512,7 +605,10 @@ export function FinanceModule() {
               <option value="">Sin colaborador</option>
               {team.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}
             </select>
-            <select value={transactionForm.contractId} onChange={e => setTransactionForm({ ...transactionForm, contractId: e.target.value })} className={FIELD}>
+            <select value={transactionForm.contractId} onChange={(e) => {
+              setTransactionForm({ ...transactionForm, contractId: e.target.value });
+              syncTransactionFromContract(e.target.value);
+            }} className={FIELD}>
               <option value="">Sin contrato</option>
               {contracts.map(contract => <option key={contract.id} value={contract.id}>{contract.client} - {contract.service}</option>)}
             </select>
@@ -521,7 +617,11 @@ export function FinanceModule() {
           </form>
 
           <div className="xl:col-span-8 space-y-3">
-            {transactions.map(tx => (
+            <div className="bg-white/5 border border-white/10 rounded-[28px] p-4 flex items-center gap-2">
+              <Search size={16} className="text-white/40" />
+              <input value={transactionSearch} onChange={e => setTransactionSearch(e.target.value)} placeholder="Buscar movimiento, categoría o método" className="bg-transparent outline-none text-sm text-white placeholder:text-white/30 w-full" />
+            </div>
+            {filteredTransactions.map(tx => (
               <div key={tx.id} className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <p className="font-bold">{tx.description}</p>
@@ -533,6 +633,11 @@ export function FinanceModule() {
                 </span>
               </div>
             ))}
+            {filteredTransactions.length === 0 && (
+              <div className="rounded-[28px] border border-dashed border-white/10 p-10 text-center text-white/40 text-sm">
+                No hay movimientos que coincidan con la búsqueda.
+              </div>
+            )}
           </div>
         </div>
       )}

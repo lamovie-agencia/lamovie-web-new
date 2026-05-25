@@ -40,6 +40,27 @@ import webShowcaseItem from '../api-src/web-showcase/[id].js';
 
 type ApiHandler = (req: VercelRequest, res: VercelResponse) => Promise<any> | any;
 
+async function parseRequestBody(req: VercelRequest) {
+  if (req.body === undefined || req.body === null) {
+    return {};
+  }
+
+  if (typeof req.body === 'string') {
+    const trimmed = req.body.trim();
+    if (!trimmed) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      throw new Error('Invalid JSON body');
+    }
+  }
+
+  return req.body;
+}
+
 const routeHandlers: Record<string, ApiHandler> = {
   'admin/login': adminLogin,
   'admin/profile': adminProfile,
@@ -115,6 +136,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (id) {
     req.query.id = id;
+  }
+
+  try {
+    (req as any).body = await parseRequestBody(req);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Invalid JSON body') {
+      return res.status(400).json({ error: 'Invalid JSON body' });
+    }
+
+    throw error;
   }
 
   return routeHandlers[key](req, res);

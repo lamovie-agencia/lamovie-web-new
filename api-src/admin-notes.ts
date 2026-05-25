@@ -1,5 +1,5 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import { AuthenticatedRequest, authenticateToken, ensureCoreSchema, getPool, setCors } from '../lib/apiDb.js';
+import { AuthenticatedRequest, authenticateToken, ensureCoreSchema, firstDefined, getId, getPool, setCors } from '../lib/apiDb.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);
@@ -23,6 +23,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         [content, reminder || null]
       );
       return res.status(201).json(result.rows[0]);
+    }
+
+    if (req.method === 'PUT' || req.method === 'PATCH') {
+      const id = getId(req);
+      if (!id) return res.status(400).json({ error: 'Valid id is required' });
+      const body = req.body || {};
+      const result = await db.query(
+        `UPDATE admin_notes
+         SET content = COALESCE($1, content),
+             reminder = COALESCE($2, reminder)
+         WHERE id = $3
+         RETURNING *`,
+        [firstDefined(body.content), firstDefined(body.reminder), id]
+      );
+      if (!result.rows[0]) return res.status(404).json({ error: 'Note not found' });
+      return res.status(200).json(result.rows[0]);
+    }
+
+    if (req.method === 'DELETE') {
+      const id = getId(req);
+      if (!id) return res.status(400).json({ error: 'Valid id is required' });
+      await db.query('DELETE FROM admin_notes WHERE id = $1', [id]);
+      return res.status(200).json({ message: 'Deleted' });
     }
 
     return res.status(405).json({ error: 'Method not allowed' });

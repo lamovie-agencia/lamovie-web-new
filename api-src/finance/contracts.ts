@@ -11,17 +11,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = getPool();
 
     if (req.method === 'GET') {
-      const result = await db.query(`
-        SELECT id, client, service, value_usd AS "valueUSD", status,
-               next_billing AS "nextBilling", auto_renew AS "autoRenew",
-               start_date AS "startDate", end_date AS "endDate",
-               billing_cycle AS "billingCycle", expected_cost_usd AS "expectedCostUSD",
-               reinvest_percent AS "reinvestPercent", savings_percent AS "savingsPercent",
-               payroll_percent AS "payrollPercent", owner_profit_percent AS "ownerProfitPercent",
-               notes
-        FROM admin_contracts
-        ORDER BY id DESC
-      `);
+      const search = String(req.query.search || '').trim();
+      const status = String(req.query.status || '').trim();
+      const searchLike = search ? `%${search}%` : '';
+      const result = await db.query(
+        `SELECT id, client, service, value_usd AS "valueUSD", status,
+                next_billing AS "nextBilling", auto_renew AS "autoRenew",
+                start_date AS "startDate", end_date AS "endDate",
+                billing_cycle AS "billingCycle", expected_cost_usd AS "expectedCostUSD",
+                reinvest_percent AS "reinvestPercent", savings_percent AS "savingsPercent",
+                payroll_percent AS "payrollPercent", owner_profit_percent AS "ownerProfitPercent",
+                notes
+         FROM admin_contracts
+         WHERE ($1 = '' OR client ILIKE $1 OR service ILIKE $1 OR notes ILIKE $1)
+           AND ($2 = '' OR status = $2)
+         ORDER BY id DESC`,
+        [searchLike, status]
+      );
       return res.status(200).json(result.rows);
     }
 
