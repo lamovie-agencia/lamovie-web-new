@@ -168,8 +168,12 @@ export async function ensureCoreSchema() {
           likes INTEGER DEFAULT 0,
           display_order INTEGER DEFAULT 0,
           click_count INTEGER DEFAULT 0,
+          gallery_images JSONB DEFAULT '[]'::jsonb,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        ALTER TABLE IF EXISTS portfolio
+          ADD COLUMN IF NOT EXISTS gallery_images JSONB DEFAULT '[]'::jsonb;
 
         CREATE TABLE IF NOT EXISTS client_partners (
           id SERIAL PRIMARY KEY,

@@ -27,10 +27,30 @@ function authenticateToken(req: AuthenticatedRequest): boolean {
   }
 }
 
+function parseGalleryImages(value: any): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => String(item).trim()).filter(Boolean);
+      }
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
 function cleanPortfolioPayload(body: any) {
   const mediaSource = String(body.media_source || 'native').trim();
   const parsed = parsePortfolioUrl(String(body.media_url || body.video_url || '').trim(), mediaSource);
-  const thumbnailUrl = String(body.thumbnail_url || body.image_url || '').trim();
+  const gallery_images = parseGalleryImages(body.gallery_images);
+  const thumbnailUrl = String(body.thumbnail_url || body.image_url || gallery_images[0] || '').trim();
 
   return {
     title: String(body.title || '').trim(),
@@ -40,6 +60,7 @@ function cleanPortfolioPayload(body: any) {
     media_source: mediaSource,
     media_url: parsed.cleanUrl,
     thumbnail_url: thumbnailUrl,
+    gallery_images,
     views: Number(body.views) || 0,
     likes: Number(body.likes) || 0,
     display_order: Number(body.display_order) || 0
@@ -113,10 +134,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const result = await pool.query(
         `INSERT INTO portfolio
-          (title, category, description, format_type, media_source, media_url, thumbnail_url, image_url, video_url, views, likes, display_order)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $6, $8, $9, $10)
+          (title, category, description, format_type, media_source, media_url, thumbnail_url, image_url, video_url, views, likes, display_order, gallery_images)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $7, $6, $8, $9, $10, $11)
          RETURNING *`,
-        [item.title, item.category, item.description, item.format_type, item.media_source, item.media_url, item.thumbnail_url, item.views, item.likes, item.display_order]
+        [item.title, item.category, item.description, item.format_type, item.media_source, item.media_url, item.thumbnail_url, item.views, item.likes, item.display_order, JSON.stringify(item.gallery_images)]
       );
       return res.status(201).json(result.rows[0]);
     }
@@ -141,10 +162,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           video_url = $6,
           views = $8,
           likes = $9,
-          display_order = $10
-         WHERE id = $11
+          display_order = $10,
+          gallery_images = $11
+         WHERE id = $12
          RETURNING *`,
-        [item.title, item.category, item.description, item.format_type, item.media_source, item.media_url, item.thumbnail_url, item.views, item.likes, item.display_order, id]
+        [item.title, item.category, item.description, item.format_type, item.media_source, item.media_url, item.thumbnail_url, item.views, item.likes, item.display_order, JSON.stringify(item.gallery_images), id]
       );
       if (!result.rows[0]) return res.status(404).json({ error: 'Not found' });
       return res.status(200).json(result.rows[0]);

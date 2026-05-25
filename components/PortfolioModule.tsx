@@ -25,6 +25,7 @@ export interface PortfolioItem {
   display_order?: number;
   image_url?: string;
   video_url?: string;
+  gallery_images?: string[];
   created_at?: string;
 }
 
@@ -36,8 +37,9 @@ const VISUAL_PRESETS = [
   "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80"
 ];
 
-const resolvePortfolioThumbnail = (item: Pick<PortfolioItem, 'title' | 'category' | 'thumbnail_url' | 'image_url'>) => {
+const resolvePortfolioThumbnail = (item: Pick<PortfolioItem, 'title' | 'category' | 'thumbnail_url' | 'image_url' | 'gallery_images'>) => {
   if (item.thumbnail_url || item.image_url) return item.thumbnail_url || item.image_url || VISUAL_PRESETS[0];
+  if (Array.isArray(item.gallery_images) && item.gallery_images[0]) return item.gallery_images[0];
 
   const title = String(item.title || '').toLowerCase();
   if (item.category === 'reels') {
@@ -52,6 +54,31 @@ const resolvePortfolioThumbnail = (item: Pick<PortfolioItem, 'title' | 'category
   );
 
   return workMatch?.img || VISUAL_PRESETS[0];
+};
+
+const getInitialContentMode = (item?: Partial<PortfolioItem>) => {
+  if (Array.isArray(item?.gallery_images) && item.gallery_images.length > 0) return 'carousel' as const;
+  if (item?.thumbnail_url && !item?.media_url) return 'image' as const;
+  return 'video' as const;
+};
+
+const buildAiTitle = ({
+  category,
+  description,
+  format_type,
+  mode
+}: {
+  category: string;
+  description: string;
+  format_type: string;
+  mode: 'video' | 'image' | 'carousel';
+}) => {
+  const categoryLabel = category === 'reels' ? 'Reel vertical' : category === 'web' ? 'Web premium' : category === 'branding' ? 'Branding cinematográfico' : 'Proyecto cinema';
+  const focus = description.trim().replace(/\s+/g, ' ').slice(0, 70) || 'campaña visual';
+  const formatLabel = format_type === 'featured' ? 'destacado' : format_type === 'vertical' ? 'vertical' : format_type === 'square' ? 'cuadrado' : 'horizontal';
+  const modeLabel = mode === 'carousel' ? 'Carrusel' : mode === 'image' ? 'Imagen editorial' : 'Video estratégico';
+
+  return `${categoryLabel} • ${modeLabel} • ${formatLabel} • ${focus}`;
 };
 
 async function generateAutoThumbnail(file: File): Promise<File | null> {
@@ -162,6 +189,8 @@ export function PortfolioModule() {
   const [statusMsg, setStatusMsg] = useState<{ text: string; error: boolean } | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [carouselFiles, setCarouselFiles] = useState<File[]>([]);
+  const [contentMode, setContentMode] = useState<'video' | 'image' | 'carousel'>('video');
 
   // States of the Create/Edit form
   const [formState, setFormState] = useState<{
@@ -208,6 +237,7 @@ export function PortfolioModule() {
   const openCreateModal = () => {
     setModalMode('create');
     setSelectedId(null);
+    setContentMode('video');
     setFormState({
       title: '',
       description: '',
@@ -224,12 +254,14 @@ export function PortfolioModule() {
     setStatusMsg(null);
     setCoverFile(null);
     setVideoFile(null);
+    setCarouselFiles([]);
   };
 
   // Handle open modal for edit
   const openEditModal = (item: PortfolioItem) => {
     setModalMode('edit');
     setSelectedId(item.id);
+    setContentMode(getInitialContentMode(item));
     setFormState({
       title: item.title ?? '',
       description: item.description ?? '',
@@ -246,6 +278,7 @@ export function PortfolioModule() {
     setStatusMsg(null);
     setCoverFile(null);
     setVideoFile(null);
+    setCarouselFiles([]);
   };
 
   // Safe delete handler
@@ -267,7 +300,6 @@ export function PortfolioModule() {
     setIsSyncing(true);
     setStatusMsg(null);
 
-    // Validate
     if (!formState.title.trim()) {
       setStatusMsg({ text: "El título es obligatorio", error: true });
       setIsSyncing(false);
@@ -275,8 +307,17 @@ export function PortfolioModule() {
     }
 
     try {
+      const currentItem = selectedId ? portfolio.find((item) => item.id === selectedId) : undefined;
+      const existingGalleryImages = Array.isArray(currentItem?.gallery_images) ? currentItem.gallery_images : [];
+      const uploadedCarouselUrls = carouselFiles.length
+        ? (await Promise.all(carouselFiles.map((file) => adminService.uploadAsset(file, token)))).map((upload) => upload.url).filter(Boolean)
+        : [];
+
       const payload: any = {
         ...formState,
+        gallery_images: contentMode === 'carousel' ? (uploadedCarouselUrls.length ? uploadedCarouselUrls : existingGalleryImages) : [],
+        media_source: contentMode === 'carousel' ? 'instagram' : contentMode === 'image' ? 'native' : formState.media_source,
+        media_url: contentMode === 'video' ? formState.media_url : '',
         views: Number(formState.views) || 0,
         likes: Number(formState.likes) || 0,
         display_order: Number(formState.display_order) || 0
@@ -301,24 +342,33 @@ export function PortfolioModule() {
         }
       }
 
+      if (contentMode === 'carousel' && payload.gallery_images?.length) {
+        payload.thumbnail_url = payload.gallery_images[0];
+        payload.image_url = payload.gallery_images[0];
+      }
+
+      if (contentMode === 'image' && !payload.thumbnail_url) {
+        payload.thumbnail_url = formState.thumbnail_url || currentItem?.thumbnail_url || currentItem?.image_url || '';
+      }
+
       if (!payload.thumbnail_url) {
         payload.thumbnail_url = resolvePortfolioThumbnail({
           title: payload.title,
           category: payload.category,
           thumbnail_url: '',
-          image_url: ''
+          image_url: '',
+          gallery_images: payload.gallery_images
         });
       }
 
       if (modalMode === 'create') {
         await adminService.createPortfolioProject(payload, token);
         setStatusMsg({ text: "¡Proyecto creado con éxito e integrado al Bento Grid!", error: false });
-      } else {
-        if (selectedId) {
-          await adminService.updatePortfolioProject(selectedId, payload, token);
-          setStatusMsg({ text: "¡Proyecto actualizado correctamente con persistencia en PostgreSQL!", error: false });
-        }
+      } else if (selectedId) {
+        await adminService.updatePortfolioProject(selectedId, payload, token);
+        setStatusMsg({ text: "¡Proyecto actualizado correctamente con persistencia en PostgreSQL!", error: false });
       }
+
       await fetchPortfolio();
       setTimeout(() => {
         setIsModalOpen(false);
@@ -684,7 +734,24 @@ export function PortfolioModule() {
 
                    {/* Title Input */}
                    <div>
-                     <label className="block text-[10px] font-black uppercase tracking-widest text-white/50 mb-2">Título del Proyecto</label>
+                     <div className="flex items-center justify-between gap-3 mb-2">
+                       <label className="block text-[10px] font-black uppercase tracking-widest text-white/50">Título del Proyecto</label>
+                       <button
+                         type="button"
+                         onClick={() => setFormState(prev => ({
+                           ...prev,
+                           title: buildAiTitle({
+                             category: prev.category,
+                             description: prev.description,
+                             format_type: prev.format_type,
+                             mode: contentMode
+                           })
+                         }))}
+                         className="inline-flex items-center gap-2 rounded-full border border-movie-red/30 bg-movie-red/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-movie-red"
+                       >
+                         <Sparkles size={12} /> Generar con IA
+                       </button>
+                     </div>
                      <input 
                        type="text"
                        placeholder="Ej: Tráiler Oficial: Bajo la Penumbra"
@@ -775,101 +842,178 @@ export function PortfolioModule() {
 
                    {/* Media URL & Source */}
                    <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-4">
-                     <h4 className="text-[10px] font-black uppercase tracking-widest text-movie-red flex items-center gap-2">
-                       <Video size={14} /> Reproductor Cinemático Enlazado Corregido
-                     </h4>
-                     
-                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                       {(['youtube', 'vimeo', 'instagram', 'native'] as const).map((source) => (
+                     <div className="flex items-center justify-between gap-3">
+                       <h4 className="text-[10px] font-black uppercase tracking-widest text-movie-red flex items-center gap-2">
+                         <Video size={14} /> Flujo de contenido visual
+                       </h4>
+                       <span className="text-[9px] uppercase tracking-widest text-white/40">
+                         {contentMode === 'video' ? 'Video / enlace' : contentMode === 'image' ? 'Imagen editorial' : 'Carrusel Instagram'}
+                       </span>
+                     </div>
+
+                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                       {([
+                         { key: 'video', label: 'Video / Enlace', icon: Video },
+                         { key: 'image', label: 'Imagen', icon: ImageIcon },
+                         { key: 'carousel', label: 'Carrusel', icon: Camera }
+                       ] as const).map((option) => (
                          <button
-                           key={source}
+                           key={option.key}
                            type="button"
-                           onClick={() => setFormState(prev => ({ ...prev, media_source: source }))}
-                           className={`px-2 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-                             formState.media_source === source 
-                               ? 'bg-movie-red/20 border border-movie-red text-movie-red font-bold' 
-                               : 'bg-black/30 border border-white/5 text-white/40 hover:text-white hover:bg-white/5'
+                           onClick={() => setContentMode(option.key)}
+                           className={`flex items-center justify-center gap-2 px-3 py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
+                             contentMode === option.key
+                               ? 'bg-movie-red border-movie-red text-white'
+                               : 'bg-black/30 border-white/10 text-white/50 hover:text-white hover:bg-white/5'
                            }`}
                          >
-                           {source === 'youtube' && 'YouTube'}
-                           {source === 'vimeo' && 'Vimeo'}
-                           {source === 'instagram' && 'Instagram'}
-                           {source === 'native' && 'Native Video'}
+                           <option.icon size={14} /> {option.label}
                          </button>
                        ))}
                      </div>
 
-                     <div>
-                       <label className="block text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">URL del Video / Enlace Original</label>
-                       <input 
-                         type="text"
-                         placeholder="Ej: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-                         value={formState.media_url}
-                         onChange={(e) => setFormState(prev => ({ ...prev, media_url: e.target.value }))}
-                         className="w-full bg-black/40 border border-white/10 focus:border-movie-red rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition-all"
-                       />
-                       <span className="text-[8px] text-white/30 font-mono mt-1.5 block">
-                         * La base de datos ejecutará un Regex sanitizador para extraer el ID en segundo plano.
-                       </span>
-                     </div>
+                     {contentMode === 'video' && (
+                       <div className="space-y-4">
+                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                           {(['youtube', 'vimeo', 'instagram', 'native'] as const).map((source) => (
+                             <button
+                               key={source}
+                               type="button"
+                               onClick={() => setFormState(prev => ({ ...prev, media_source: source }))}
+                               className={`px-2 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                                 formState.media_source === source 
+                                   ? 'bg-movie-red/20 border border-movie-red text-movie-red font-bold' 
+                                   : 'bg-black/30 border border-white/5 text-white/40 hover:text-white hover:bg-white/5'
+                               }`}
+                             >
+                               {source === 'youtube' && 'YouTube'}
+                               {source === 'vimeo' && 'Vimeo'}
+                               {source === 'instagram' && 'Instagram'}
+                               {source === 'native' && 'Native Video'}
+                             </button>
+                           ))}
+                         </div>
 
-                     <div className="border-t border-white/10 pt-4">
-                       <label className="block text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">O subir video nativo (max 4 MB)</label>
-                       <label className="flex items-center justify-between gap-3 bg-black/40 border border-dashed border-white/15 hover:border-movie-red rounded-xl px-4 py-3 cursor-pointer transition-all">
-                         <span className="flex items-center gap-2 text-xs text-white/60">
-                           <UploadCloud size={16} />
-                           {videoFile ? videoFile.name : 'Seleccionar video'}
-                         </span>
-                         <input
-                           type="file"
-                           accept="video/*"
-                           className="hidden"
-                           onChange={(e) => {
-                             const file = e.target.files?.[0] || null;
-                             if (file && file.size > 4 * 1024 * 1024) {
-                               setStatusMsg({ text: 'El video supera el limite de 4 MB. Usa un link externo para videos pesados.', error: true });
-                               e.currentTarget.value = '';
-                               return;
-                             }
-                             setVideoFile(file);
-                           }}
+                         <div>
+                           <label className="block text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">URL del Video / Enlace Original</label>
+                           <input 
+                             type="text"
+                             placeholder="Ej: https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+                             value={formState.media_url}
+                             onChange={(e) => setFormState(prev => ({ ...prev, media_url: e.target.value }))}
+                             className="w-full bg-black/40 border border-white/10 focus:border-movie-red rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition-all"
+                           />
+                           <span className="text-[8px] text-white/30 font-mono mt-1.5 block">
+                             * La base de datos ejecutará un Regex sanitizador para extraer el ID en segundo plano.
+                           </span>
+                         </div>
+
+                         <div className="border-t border-white/10 pt-4">
+                           <label className="block text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">O subir video nativo (max 4 MB)</label>
+                           <label className="flex items-center justify-between gap-3 bg-black/40 border border-dashed border-white/15 hover:border-movie-red rounded-xl px-4 py-3 cursor-pointer transition-all">
+                             <span className="flex items-center gap-2 text-xs text-white/60">
+                               <UploadCloud size={16} />
+                               {videoFile ? videoFile.name : 'Seleccionar video'}
+                             </span>
+                             <input
+                               type="file"
+                               accept="video/*"
+                               className="hidden"
+                               onChange={(e) => {
+                                 const file = e.target.files?.[0] || null;
+                                 if (file && file.size > 4 * 1024 * 1024) {
+                                   setStatusMsg({ text: 'El video supera el limite de 4 MB. Usa un link externo para videos pesados.', error: true });
+                                   e.currentTarget.value = '';
+                                   return;
+                                 }
+                                 setVideoFile(file);
+                               }}
+                             />
+                           </label>
+                         </div>
+                       </div>
+                     )}
+
+                     {contentMode === 'image' && (
+                       <div className="space-y-3">
+                         <p className="text-[9px] uppercase tracking-widest text-white/40">
+                           Usa una imagen de portada independiente para el proyecto y deja el video o enlace en segundo plano.
+                         </p>
+                         <label className="flex items-center justify-between gap-3 bg-white/5 border border-dashed border-white/15 hover:border-movie-red rounded-xl px-4 py-3 cursor-pointer transition-all">
+                           <span className="flex items-center gap-2 text-xs text-white/60">
+                             <ImageIcon size={16} />
+                             {coverFile ? coverFile.name : 'Subir imagen de portada (max 4 MB)'}
+                           </span>
+                           <input
+                             type="file"
+                             accept="image/*"
+                             className="hidden"
+                             onChange={(e) => {
+                               const file = e.target.files?.[0] || null;
+                               if (file && file.size > 4 * 1024 * 1024) {
+                                 setStatusMsg({ text: 'La imagen supera el limite de 4 MB.', error: true });
+                                 e.currentTarget.value = '';
+                                 return;
+                               }
+                               setCoverFile(file);
+                             }}
+                           />
+                         </label>
+                         <input 
+                           type="text"
+                           placeholder="URL de portada opcional"
+                           value={formState.thumbnail_url}
+                           onChange={(e) => setFormState(prev => ({ ...prev, thumbnail_url: e.target.value }))}
+                           className="w-full bg-white/5 border border-white/10 focus:border-movie-red rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition-all"
                          />
-                       </label>
-                     </div>
-                   </div>
+                       </div>
+                     )}
 
-                   {/* Custom cover file selection / visual presets */}
-                   <div className="space-y-3">
-                     <label className="block text-[10px] font-black uppercase tracking-widest text-white/50">Foto de Portada Optimizada</label>
-                     <input 
-                       type="text"
-                       placeholder="Ingresa la URL de la portada o selecciona una de abajo"
-                       value={formState.thumbnail_url}
-                       onChange={(e) => setFormState(prev => ({ ...prev, thumbnail_url: e.target.value }))}
-                       className="w-full bg-white/5 border border-white/10 focus:border-movie-red rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition-all"
-                     />
+                     {contentMode === 'carousel' && (
+                       <div className="space-y-3">
+                         <p className="text-[9px] uppercase tracking-widest text-white/40">
+                           Sube varias imágenes y se guardará como carrusel tipo Instagram. El primer frame se usará como portada.
+                         </p>
+                         <label className="flex items-center justify-between gap-3 bg-white/5 border border-dashed border-white/15 hover:border-movie-red rounded-xl px-4 py-3 cursor-pointer transition-all">
+                           <span className="flex items-center gap-2 text-xs text-white/60">
+                             <Camera size={16} />
+                             {carouselFiles.length > 0 ? `${carouselFiles.length} imágenes seleccionadas` : 'Seleccionar imágenes del carrusel'}
+                           </span>
+                           <input
+                             type="file"
+                             accept="image/*"
+                             multiple
+                             className="hidden"
+                             onChange={(e) => {
+                               const files = Array.from(e.target.files || []);
+                               if (files.some((file) => file.size > 4 * 1024 * 1024)) {
+                                 setStatusMsg({ text: 'Una imagen supera el limite de 4 MB.', error: true });
+                                 e.currentTarget.value = '';
+                                 return;
+                               }
+                               setCarouselFiles(files);
+                             }}
+                           />
+                         </label>
+                         <input 
+                           type="text"
+                           placeholder="Enlace Instagram opcional"
+                           value={formState.media_url}
+                           onChange={(e) => setFormState(prev => ({ ...prev, media_url: e.target.value }))}
+                           className="w-full bg-black/40 border border-white/10 focus:border-movie-red rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition-all"
+                         />
+                         {carouselFiles.length > 0 && (
+                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                             {carouselFiles.map((file, index) => (
+                               <div key={`${file.name}-${index}`} className="relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/40">
+                                 <img src={URL.createObjectURL(file)} alt={`Preview ${index + 1}`} className="h-full w-full object-cover" />
+                               </div>
+                             ))}
+                           </div>
+                         )}
+                       </div>
+                     )}
 
-                     <label className="flex items-center justify-between gap-3 bg-white/5 border border-dashed border-white/15 hover:border-movie-red rounded-xl px-4 py-3 cursor-pointer transition-all">
-                       <span className="flex items-center gap-2 text-xs text-white/60">
-                         <ImageIcon size={16} />
-                         {coverFile ? coverFile.name : 'Subir imagen de portada (max 4 MB)'}
-                       </span>
-                       <input
-                         type="file"
-                         accept="image/*"
-                         className="hidden"
-                         onChange={(e) => {
-                           const file = e.target.files?.[0] || null;
-                           if (file && file.size > 4 * 1024 * 1024) {
-                             setStatusMsg({ text: 'La imagen supera el limite de 4 MB.', error: true });
-                             e.currentTarget.value = '';
-                             return;
-                           }
-                           setCoverFile(file);
-                         }}
-                       />
-                     </label>
-                     
                      <div className="space-y-1">
                         <span className="text-[9px] uppercase font-bold tracking-widest text-white/30 block">Presets Estéticos de Alta Calidad:</span>
                         <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">

@@ -6,8 +6,9 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { ASSETS } from '../data/assets';
 
-const resolvePortfolioThumbnail = (item: { title?: string; category?: string; thumbnail_url?: string; image_url?: string }) => {
+const resolvePortfolioThumbnail = (item: { title?: string; category?: string; thumbnail_url?: string; image_url?: string; gallery_images?: string[] }) => {
   if (item.thumbnail_url || item.image_url) return item.thumbnail_url || item.image_url || '';
+  if (Array.isArray(item.gallery_images) && item.gallery_images[0]) return item.gallery_images[0];
 
   const title = String(item.title || '').toLowerCase();
   if (item.category === 'reels') {
@@ -35,6 +36,7 @@ export interface DbPortfolioItem {
   thumbnail_url: string;
   image_url?: string;
   video_url?: string;
+  gallery_images?: string[];
 }
 
 const filterCategories = [
@@ -169,6 +171,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
 const Portfolio: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState("all");
   const [selectedWork, setSelectedWork] = useState<DbPortfolioItem | null>(null);
+  const [galleryIndex, setGalleryIndex] = useState(0);
   const [dbItems, setDbItems] = useState<DbPortfolioItem[]>([]);
   const [visibleItems, setVisibleItems] = useState(8);
 
@@ -191,8 +194,10 @@ const Portfolio: React.FC = () => {
                 title: item.title,
                 category: item.category,
                 thumbnail_url: item.thumbnail_url,
-                image_url: item.image_url
+                image_url: item.image_url,
+                gallery_images: Array.isArray(item.gallery_images) ? item.gallery_images : []
               }),
+              gallery_images: Array.isArray(item.gallery_images) ? item.gallery_images : []
             }));
             setDbItems(mappedDb);
           }
@@ -203,6 +208,10 @@ const Portfolio: React.FC = () => {
     };
     fetchPortfolio();
   }, []);
+
+  useEffect(() => {
+    setGalleryIndex(0);
+  }, [selectedWork]);
 
   // Generación de Fallback Estático si el administrador aún no ingresa nada
   const fallbackWorks = useMemo<DbPortfolioItem[]>(() => {
@@ -371,7 +380,32 @@ const Portfolio: React.FC = () => {
               
               {/* Video Player Display Screen */}
               <div className="w-full lg:col-span-8 h-[50vh] lg:h-full rounded-[32px] overflow-hidden flex items-center justify-center bg-black border border-white/10 relative shadow-2xl">
-                {selectedWork.media_url ? (
+                {selectedWork.gallery_images && selectedWork.gallery_images.length > 0 ? (
+                  <div className="relative w-full h-full">
+                    <img
+                      src={selectedWork.gallery_images[galleryIndex]}
+                      alt={`${selectedWork.title} ${galleryIndex + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3">
+                      <div className="rounded-full bg-black/60 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-white/80">
+                        Carrusel {galleryIndex + 1} / {selectedWork.gallery_images.length}
+                      </div>
+                      <div className="flex gap-2">
+                        {selectedWork.gallery_images.map((image, index) => (
+                          <button
+                            key={image}
+                            type="button"
+                            onClick={() => setGalleryIndex(index)}
+                            className={`h-2.5 rounded-full transition-all ${
+                              index === galleryIndex ? 'w-7 bg-movie-red' : 'w-2.5 bg-white/40'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : selectedWork.media_url ? (
                   <>
                     {selectedWork.media_source === 'youtube' && (
                       <iframe
