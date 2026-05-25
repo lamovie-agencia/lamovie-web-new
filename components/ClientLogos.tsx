@@ -8,7 +8,7 @@ const FALLBACK_LOGOS = [
   { name: "BHK", logo_url: "https://cdn.shopify.com/s/files/1/0700/3052/4636/files/LOGO_BHK_3.png?v=1766181369" },
   { name: "La Vitrina Textil", logo_url: "https://www.lavitrinatextil.com/cdn/shop/files/LOGO_LA_VITRINA_TEXTIL_SINFONDO-02.png?v=1770673573&width=1920" },
   { name: "Gets Mobile", logo_url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRNBl9hqGvovWp2aZV69qQf7KSoCI49ws9m4A&s" },
-    { name: "Grupo Educate", logo_url: "https://www.grupoeducatecolombia.com/wp-content/uploads/2025/10/menu-logo-K.png" }
+  { name: "Grupo Educate", logo_url: "https://www.grupoeducatecolombia.com/wp-content/uploads/2025/10/menu-logo-K.png" }
 ];
 
 export default function ClientLogos() {
