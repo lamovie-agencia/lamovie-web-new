@@ -132,6 +132,7 @@ const AdminDashboard: React.FC = () => {
   const [settings, setSettings] = useState<any>({});
   const [tasks, setTasks] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
+  const [globalSearch, setGlobalSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -242,11 +243,113 @@ const AdminDashboard: React.FC = () => {
   const [crmClients, setCrmClients] = useState<any[]>([]);
   const [crmSubTab, setCrmSubTab] = useState<'dashboard' | 'clients' | 'pipeline' | 'projects' | 'calendar'>('dashboard');
   const [crmOriginFilter, setCrmOriginFilter] = useState<string>('all');
+  const [crmStatusFilter, setCrmStatusFilter] = useState<'all' | 'prospect' | 'active' | 'inactive'>('all');
+  const [crmSearch, setCrmSearch] = useState('');
   const [projectSubTab, setProjectSubTab] = useState<'overview' | 'list' | 'kanban' | 'timeline' | 'files'>('overview');
   const [crmForm, setCrmForm] = useState({
     name: '', email: '', phone: '', status: 'prospect', value: '', tag: '', reminder: '',
     service: '', contractStart: '', contractEnd: '', serviceValue: '', billingCycle: 'unique'
   });
+
+  const filteredCrmClients = useMemo(() => {
+    return crmClients.filter((client: any) => {
+      const matchesSearch = `${client.name || ''} ${client.email || ''} ${client.service || ''} ${client.phone || ''}`.toLowerCase().includes(crmSearch.toLowerCase());
+      const matchesStatus = crmStatusFilter === 'all' || client.status === crmStatusFilter;
+      const matchesOrigin = crmOriginFilter === 'all' || String(client.tag || '').toLowerCase().includes(crmOriginFilter) || String(client.service || '').toLowerCase().includes(crmOriginFilter) || String(client.origin || '').toLowerCase().includes(crmOriginFilter);
+      return matchesSearch && matchesStatus && matchesOrigin;
+    });
+  }, [crmClients, crmOriginFilter, crmSearch, crmStatusFilter]);
+
+  const pendingApprovals = useMemo(() => filteredCrmClients.filter((client: any) => isProspectStatus(client.status)), [filteredCrmClients]);
+
+  const globalSearchResults = useMemo(() => {
+    const query = globalSearch.trim().toLowerCase();
+    if (!query) return [];
+
+    const addResult = (tab: Tab, title: string, description: string, badge: string) => {
+      if (!title || !description) return;
+      const haystack = `${title} ${description}`.toLowerCase();
+      if (!haystack.includes(query)) return;
+      return { tab, title, description, badge };
+    };
+
+    const results: Array<{ tab: Tab; title: string; description: string; badge: string }> = [];
+
+    crmClients.forEach((client: any) => {
+      const result = addResult(
+        'crm',
+        client.name || 'Cliente CRM',
+        `${client.service || 'Sin servicio'} • ${client.email || client.phone || 'Sin contacto'}`,
+        displayCrmStatus(client.status)
+      );
+      if (result) results.push(result);
+    });
+
+    portfolio.forEach((item: any) => {
+      const result = addResult(
+        'portfolio',
+        item.title || 'Proyecto de portafolio',
+        `${item.category || 'Sin categoría'} • ${item.description || 'Sin descripción'}`,
+        'Portafolio'
+      );
+      if (result) results.push(result);
+    });
+
+    services.forEach((service: any) => {
+      const result = addResult('services', service.title || 'Servicio', service.description || 'Sin descripción', 'Servicios');
+      if (result) results.push(result);
+    });
+
+    testimonials.forEach((item: any) => {
+      const result = addResult('testimonials', item.name || 'Testimonio', item.content || 'Sin contenido', 'Testimonios');
+      if (result) results.push(result);
+    });
+
+    webShowcase.forEach((item: any) => {
+      const result = addResult('web-showcase', item.title || 'Proyecto web', item.description || 'Sin descripción', 'Web Showcase');
+      if (result) results.push(result);
+    });
+
+    pricing.forEach((item: any) => {
+      const result = addResult('pricing', item.name || 'Plan', item.description || 'Sin descripción', 'Planes');
+      if (result) results.push(result);
+    });
+
+    partners.forEach((item: any) => {
+      const result = addResult('partners', item.name || 'Partner', item.website_url || 'Sin sitio web', 'Partners');
+      if (result) results.push(result);
+    });
+
+    tasks.forEach((item: any) => {
+      const result = addResult('tasks', item.title || 'Tarea', item.note || item.description || 'Sin descripción', 'Tareas');
+      if (result) results.push(result);
+    });
+
+    notes.forEach((item: any) => {
+      const result = addResult('notes', item.content || 'Nota', item.reminder || 'Sin recordatorio', 'Notas');
+      if (result) results.push(result);
+    });
+
+    productionShoots.forEach((item: any) => {
+      const result = addResult('production', item.title || 'Shoot', item.notes || 'Sin notas', 'Producción');
+      if (result) results.push(result);
+    });
+
+    socialPosts.forEach((item: any) => {
+      const result = addResult('social', item.text || 'Post social', item.platform || 'Sin plataforma', 'Social');
+      if (result) results.push(result);
+    });
+
+    return results.slice(0, 8);
+  }, [crmClients, globalSearch, notes, partners, portfolio, pricing, productionShoots, services, socialPosts, tasks, testimonials, webShowcase]);
+
+  const handleGlobalSearchSelect = useCallback((tab: Tab) => {
+    setActiveTab(tab);
+    if (tab === 'crm') {
+      setCrmSearch(globalSearch.trim());
+    }
+    setGlobalSearch('');
+  }, [globalSearch]);
 
   const fetchData = useCallback(async () => {
     const currentToken = getStoredAdminToken();
@@ -658,6 +761,10 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleApproveClient = async (client: any) => {
+    await handleQuickStatusChange(client, 'active');
+  };
+
   const handleConvertClient = async (client: any) => {
     const currentToken = getStoredAdminToken();
     if (!currentToken) return;
@@ -927,8 +1034,10 @@ const AdminDashboard: React.FC = () => {
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
                 <input 
                   type="text" 
-                  placeholder="Comando (⌘K) o buscar..." 
-                  className="bg-white/5 border border-white/10 rounded-full pl-10 pr-6 py-2.5 text-xs text-white placeholder:text-white/30 focus:border-yellow-500/50 focus:outline-none focus:bg-white/10 transition-all w-64"
+                  value={globalSearch}
+                  onChange={(e) => setGlobalSearch(e.target.value)}
+                  placeholder="Buscar clientes, portafolio, tareas y más..." 
+                  className="bg-white/5 border border-white/10 rounded-full pl-10 pr-6 py-2.5 text-xs text-white placeholder:text-white/30 focus:border-yellow-500/50 focus:outline-none focus:bg-white/10 transition-all w-80"
                 />
              </div>
           </div>
@@ -987,6 +1096,49 @@ const AdminDashboard: React.FC = () => {
                 </p>
               </div>
             </div>
+
+            {globalSearch.trim() && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-8 rounded-[30px] border border-white/10 bg-black/40 backdrop-blur-md p-5"
+              >
+                <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.35em] text-movie-red font-black">Búsqueda global</p>
+                    <p className="text-sm text-white/70 mt-1">Resultados para <span className="text-white font-bold">“{globalSearch}”</span></p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setGlobalSearch('')}
+                    className="text-[10px] uppercase tracking-widest text-white/40 hover:text-white"
+                  >
+                    Limpiar
+                  </button>
+                </div>
+
+                {globalSearchResults.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-white/10 px-4 py-5 text-sm text-white/60">
+                    No encontramos coincidencias en CRM, portafolio, tareas, notas o showcase.
+                  </div>
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    {globalSearchResults.map((result, index) => (
+                      <button
+                        key={`${result.tab}-${result.title}-${index}`}
+                        type="button"
+                        onClick={() => handleGlobalSearchSelect(result.tab)}
+                        className="text-left rounded-2xl bg-white/5 border border-white/10 px-4 py-3 hover:border-movie-red/60 hover:bg-white/10 transition-all"
+                      >
+                        <p className="text-[9px] uppercase tracking-[0.3em] text-movie-red font-black mb-2">{result.badge}</p>
+                        <p className="text-sm text-white font-bold line-clamp-1">{result.title}</p>
+                        <p className="text-xs text-white/60 mt-2 line-clamp-2">{result.description}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
 
             {/* DASHBOARD TAB (The new premium view) */}
             {activeTab === 'dashboard' && (
@@ -1384,6 +1536,31 @@ const AdminDashboard: React.FC = () => {
                           </p>
                         </div>
                      </div>
+                     <div className="lg:col-span-4 bg-white/5 border border-white/10 rounded-[32px] p-8">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h4 className="text-sm font-bold text-yellow-300 uppercase tracking-widest mb-1">Aprobaciones pendientes</h4>
+                            <p className="text-white/60 text-sm">Revisa los nuevos ingresos antes de activarlos.</p>
+                          </div>
+                          <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-300 text-[10px] font-black uppercase tracking-widest">{pendingApprovals.length}</span>
+                        </div>
+                        <div className="space-y-3">
+                          {pendingApprovals.slice(0, 4).map((client: any) => (
+                            <div key={client.id} className="flex flex-col gap-3 bg-black/30 border border-white/10 rounded-2xl p-4">
+                              <div>
+                                <p className="font-bold text-white">{client.name}</p>
+                                <p className="text-[10px] uppercase tracking-widest text-white/40">{client.service || 'Sin servicio'} • {client.email || 'sin correo'}</p>
+                              </div>
+                              <button type="button" onClick={() => handleApproveClient(client)} className="self-start px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-xl text-[10px] font-black uppercase tracking-widest">
+                                Aprobar registro
+                              </button>
+                            </div>
+                          ))}
+                          {pendingApprovals.length === 0 && (
+                            <p className="text-white/40 text-sm">No hay registros esperando aprobación.</p>
+                          )}
+                        </div>
+                     </div>
                   </div>
                 )}
 
@@ -1440,7 +1617,19 @@ const AdminDashboard: React.FC = () => {
                       </div>
                     </div>
                     <div className="lg:col-span-8 flex flex-col gap-4">
-                      {/* Filter Controls by Origin */}
+                      <div className="bg-white/5 border border-white/10 rounded-[24px] p-4 flex flex-col lg:flex-row gap-3">
+                        <div className="flex items-center gap-2 flex-1 bg-black/30 border border-white/10 rounded-2xl px-4 py-3">
+                          <Search size={16} className="text-white/40" />
+                          <input value={crmSearch} onChange={e => setCrmSearch(e.target.value)} placeholder="Buscar cliente, correo o servicio" className="bg-transparent outline-none text-sm text-white placeholder:text-white/30 w-full" />
+                        </div>
+                        <select value={crmStatusFilter} onChange={e => setCrmStatusFilter(e.target.value as any)} className="bg-black/30 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white">
+                          <option value="all">Todos los estados</option>
+                          <option value="prospect">Prospectos</option>
+                          <option value="active">Activos</option>
+                          <option value="inactive">Inactivos</option>
+                        </select>
+                      </div>
+
                       <div className="flex flex-wrap gap-2 mb-4 bg-white/5 p-3 rounded-[24px] border border-white/5">
                         {[
                           { id: 'all', label: 'Todos' },
@@ -1463,12 +1652,7 @@ const AdminDashboard: React.FC = () => {
                         ))}
                       </div>
 
-                      {crmClients.filter(c => {
-                        if (crmOriginFilter === 'all') return true;
-                        const clientTag = String(c.tag || '').toLowerCase();
-                        const clientService = String(c.service || '').toLowerCase();
-                        return clientTag.includes(crmOriginFilter) || clientService.includes(crmOriginFilter);
-                      }).map(client => (
+                      {filteredCrmClients.map(client => (
                         <div key={client.id} className="group p-6 bg-white/5 backdrop-blur-xl rounded-[32px] border border-white/5 hover:bg-white/10 hover:border-blue-500/30 transition-all flex flex-col sm:flex-row gap-6 sm:items-center relative overflow-hidden">
                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/5 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none"></div>
                            <div className="w-16 h-16 bg-gradient-to-br from-black to-gray-900 rounded-[20px] flex items-center justify-center border border-white/10 shrink-0 shadow-inner">
@@ -1553,10 +1737,10 @@ const AdminDashboard: React.FC = () => {
                            </div>
                         </div>
                       ))}
-                      {crmClients.length === 0 && (
+                      {filteredCrmClients.length === 0 && (
                         <div className="text-center py-32 text-white/20 text-sm font-bold uppercase tracking-widest border border-dashed border-white/10 rounded-[40px] flex flex-col items-center gap-4">
                           <Users size={48} className="opacity-20" />
-                          Base de datos vacía
+                          No hay clientes que coincidan con el filtro.
                         </div>
                       )}
                     </div>

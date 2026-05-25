@@ -1,6 +1,18 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Play, TrendingUp, X } from 'lucide-react';
+import { ASSETS } from '../data/assets';
+
+const resolveReelPoster = (reel: { title?: string; thumbnail_url?: string; image_url?: string; category?: string }) => {
+  if (reel.thumbnail_url || reel.image_url) return reel.thumbnail_url || reel.image_url || '';
+
+  const title = String(reel.title || '').toLowerCase();
+  const fallback = ASSETS.portfolio.reels.find((item) =>
+    item.title.toLowerCase().includes(title) || title.includes(item.title.toLowerCase())
+  );
+
+  return fallback?.img || ASSETS.portfolio.reels[0]?.img || '';
+};
 
 type Reel = {
   id: number;
@@ -32,7 +44,7 @@ function formatMetric(value?: number) {
 function ReelCard({ reel, onOpen }: { reel: Reel; onOpen: (reel: Reel) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const src = reel.media_url || reel.video_url || '';
-  const poster = reel.thumbnail_url || reel.image_url || '';
+  const poster = resolveReelPoster(reel);
   const isFrameSource = /youtube\.com\/embed|player\.vimeo\.com|instagram\.com\/.*\/embed/.test(src);
 
   return (
@@ -87,7 +99,13 @@ export default function ReelsShowcase() {
       .then((res) => res.json())
       .then((data) => {
         if (!Array.isArray(data)) return;
-        const reels = data.filter((item) => item.category === 'reels' || item.format_type === 'vertical');
+        const reels = data
+          .filter((item) => item.category === 'reels' || item.format_type === 'vertical')
+          .map((item) => ({
+            ...item,
+            thumbnail_url: item.thumbnail_url || item.image_url || resolveReelPoster(item),
+            image_url: item.image_url || item.thumbnail_url || resolveReelPoster(item)
+          }));
         if (reels.length > 0) setItems(reels);
       })
       .catch(() => setItems(FALLBACK_REELS));
@@ -151,7 +169,7 @@ export default function ReelsShowcase() {
               ) : (
                 <video
                   src={selected.media_url || selected.video_url}
-                  poster={selected.thumbnail_url || selected.image_url}
+                  poster={resolveReelPoster(selected)}
                   autoPlay
                   controls
                   playsInline

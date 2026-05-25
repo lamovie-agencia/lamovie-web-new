@@ -6,6 +6,24 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { ASSETS } from '../data/assets';
 
+const resolvePortfolioThumbnail = (item: { title?: string; category?: string; thumbnail_url?: string; image_url?: string }) => {
+  if (item.thumbnail_url || item.image_url) return item.thumbnail_url || item.image_url || '';
+
+  const title = String(item.title || '').toLowerCase();
+  if (item.category === 'reels') {
+    const reelMatch = ASSETS.portfolio.reels.find((reel) =>
+      reel.title.toLowerCase().includes(title) || title.includes(reel.title.toLowerCase())
+    );
+    if (reelMatch?.img) return reelMatch.img;
+  }
+
+  const workMatch = ASSETS.portfolio.works.find((work) =>
+    work.title.toLowerCase().includes(title) || title.includes(work.title.toLowerCase())
+  );
+
+  return workMatch?.img || "https://images.unsplash.com/photo-1542204172-e70528091f50?auto=format&fit=crop&w=800&q=80";
+};
+
 export interface DbPortfolioItem {
   id: number;
   title: string;
@@ -35,7 +53,7 @@ interface PortfolioCardProps {
 const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
   const [isHovered, setIsHovered] = useState(false);
 
-  const displayThumbnail = work.thumbnail_url || work.image_url || "https://images.unsplash.com/photo-1542204172-e70528091f50?auto=format&fit=crop&w=800&q=80";
+  const displayThumbnail = resolvePortfolioThumbnail(work);
   const displayCategory = work.category ?? "cinema";
   const displayFormat = work.format_type ?? "horizontal";
 
@@ -169,7 +187,12 @@ const Portfolio: React.FC = () => {
               category: item.category || 'cinema',
               media_source: item.media_source || 'native',
               media_url: item.media_url || item.video_url || '',
-              thumbnail_url: item.thumbnail_url || item.image_url || 'https://images.unsplash.com/photo-1542204172-e70528091f50?auto=format&fit=crop&w=800&q=80',
+              thumbnail_url: item.thumbnail_url || item.image_url || resolvePortfolioThumbnail({
+                title: item.title,
+                category: item.category,
+                thumbnail_url: item.thumbnail_url,
+                image_url: item.image_url
+              }),
             }));
             setDbItems(mappedDb);
           }

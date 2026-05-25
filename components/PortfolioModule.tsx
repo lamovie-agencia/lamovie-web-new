@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { adminService } from '../lib/adminService';
 import { useAuth } from '../lib/authService';
+import { ASSETS } from '../data/assets';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -35,11 +36,67 @@ const VISUAL_PRESETS = [
   "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80"
 ];
 
+const resolvePortfolioThumbnail = (item: Pick<PortfolioItem, 'title' | 'category' | 'thumbnail_url' | 'image_url'>) => {
+  if (item.thumbnail_url || item.image_url) return item.thumbnail_url || item.image_url || VISUAL_PRESETS[0];
+
+  const title = String(item.title || '').toLowerCase();
+  if (item.category === 'reels') {
+    const reelMatch = ASSETS.portfolio.reels.find((reel) =>
+      reel.title.toLowerCase().includes(title) || title.includes(reel.title.toLowerCase())
+    );
+    if (reelMatch?.img) return reelMatch.img;
+  }
+
+  const workMatch = ASSETS.portfolio.works.find((work) =>
+    work.title.toLowerCase().includes(title) || title.includes(work.title.toLowerCase())
+  );
+
+  return workMatch?.img || VISUAL_PRESETS[0];
+};
+
+async function generateAutoThumbnail(file: File): Promise<File | null> {
+  const objectUrl = URL.createObjectURL(file);
+
+  try {
+    const video = document.createElement('video');
+    video.src = objectUrl;
+    video.muted = true;
+    video.preload = 'metadata';
+
+    await new Promise<void>((resolve, reject) => {
+      video.onloadeddata = () => resolve();
+      video.onerror = () => reject(new Error('No se pudo cargar el video para generar la portada'));
+    });
+
+    video.currentTime = 0;
+    await new Promise<void>((resolve, reject) => {
+      video.onseeked = () => resolve();
+      video.onerror = () => reject(new Error('No se pudo capturar el frame del reel'));
+    });
+
+    const canvas = document.createElement('canvas');
+    const width = Math.max(video.videoWidth || 1280, 1280);
+    const height = Math.max(video.videoHeight || 720, 720);
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+
+    context.drawImage(video, 0, 0, width, height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+    if (!blob) return null;
+
+    return new File([blob], `${file.name.replace(/\.[^/.]+$/, '')}-poster.jpg`, { type: 'image/jpeg' });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 // Smart Media Preview with fallbacks
 const SmartMediaPreview = React.memo(({ item }: { item: PortfolioItem }) => {
   const [isHovered, setIsHovered] = useState(false);
   
-  const displayThumbnail = item.thumbnail_url || item.image_url || "https://images.unsplash.com/photo-1542204172-e70528091f50?auto=format&fit=crop&w=800&q=80";
+  const displayThumbnail = resolvePortfolioThumbnail(item);
   const displayFormat = item.format_type ?? "horizontal";
   const displayCategory = item.category ?? "cinema";
   const displayViews = item.views ?? (1000 + (item.id % 77) * 115);
@@ -234,6 +291,23 @@ export function PortfolioModule() {
         const upload = await adminService.uploadAsset(videoFile, token);
         payload.media_url = upload.url;
         payload.media_source = 'native';
+
+        if (!payload.thumbnail_url && formState.category === 'reels') {
+          const autoThumbnail = await generateAutoThumbnail(videoFile);
+          if (autoThumbnail) {
+            const posterUpload = await adminService.uploadAsset(autoThumbnail, token);
+            payload.thumbnail_url = posterUpload.url;
+          }
+        }
+      }
+
+      if (!payload.thumbnail_url) {
+        payload.thumbnail_url = resolvePortfolioThumbnail({
+          title: payload.title,
+          category: payload.category,
+          thumbnail_url: '',
+          image_url: ''
+        });
       }
 
       if (modalMode === 'create') {
