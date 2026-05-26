@@ -47,6 +47,9 @@ const filterCategories = [
   { id: 'branding', label: 'Branding', icon: <Palette size={16} /> }
 ];
 
+const isNativeVideoSource = (work: Pick<DbPortfolioItem, 'media_source' | 'media_url'>) =>
+  Boolean(work.media_url) && (work.media_source === 'native' || !work.media_source);
+
 interface PortfolioCardProps {
   work: DbPortfolioItem;
   onClick: () => void;
@@ -59,7 +62,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
   const displayCategory = work.category ?? "cinema";
   const displayFormat = work.format_type ?? "horizontal";
   const hasExplicitPoster = Boolean(work.thumbnail_url || work.image_url || work.gallery_images?.[0]);
-  const canUseVideoFrame = !hasExplicitPoster && displayCategory === 'reels' && Boolean(work.media_url) && (work.media_source === 'native' || !work.media_source);
+  const canUseVideoFrame = !hasExplicitPoster && isNativeVideoSource(work);
 
   // Dynamic layout grid spacing configuration
   const gridClasses = useMemo(() => {
@@ -141,6 +144,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
           {(work.media_source === 'native' || !work.media_source) && (
             <video
               src={work.media_url}
+              poster={displayThumbnail}
               autoPlay
               loop
               muted
@@ -444,6 +448,7 @@ const Portfolio: React.FC = () => {
                     {(selectedWork.media_source === 'native' || !selectedWork.media_source) && (
                       <video 
                         src={selectedWork.media_url} 
+                        poster={resolvePortfolioThumbnail(selectedWork)}
                         autoPlay 
                         controls 
                         playsInline

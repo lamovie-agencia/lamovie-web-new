@@ -118,6 +118,9 @@ const getInitialContentMode = (item?: Partial<PortfolioItem>) => {
   return 'video' as const;
 };
 
+const isNativeVideoSource = (item: Pick<PortfolioItem, 'media_source' | 'media_url'>) =>
+  Boolean(item.media_url) && (item.media_source === 'native' || !item.media_source);
+
 const buildAiTitle = ({
   category,
   description,
@@ -189,7 +192,7 @@ const SmartMediaPreview = React.memo(({ item }: { item: PortfolioItem }) => {
   const displayViews = item.views ?? (1000 + (item.id % 77) * 115);
   const displayLikes = item.likes ?? (200 + (item.id % 43) * 22);
   const hasExplicitPoster = Boolean(item.thumbnail_url || item.image_url || item.gallery_images?.[0]);
-  const canUseVideoFrame = !hasExplicitPoster && displayCategory === 'reels' && Boolean(item.media_url) && (item.media_source === 'native' || !item.media_source);
+  const canUseVideoFrame = !hasExplicitPoster && isNativeVideoSource(item);
 
   return (
     <div 
@@ -200,6 +203,7 @@ const SmartMediaPreview = React.memo(({ item }: { item: PortfolioItem }) => {
       {canUseVideoFrame ? (
         <video
           src={item.media_url}
+          poster={displayThumbnail}
           muted
           playsInline
           preload="metadata"
@@ -1065,7 +1069,7 @@ export function PortfolioModule() {
                          </div>
 
                          <div className="border-t border-white/10 pt-4 space-y-4">
-                           <label className="block text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">O subir video nativo (max 4 MB)</label>
+                           <label className="block text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">O subir video nativo horizontal / vertical (max 4 MB)</label>
                            <label className="flex items-center justify-between gap-3 bg-black/40 border border-dashed border-white/15 hover:border-movie-red rounded-xl px-4 py-3 cursor-pointer transition-all">
                              <span className="flex items-center gap-2 text-xs text-white/60">
                                <UploadCloud size={16} />
@@ -1085,14 +1089,38 @@ export function PortfolioModule() {
                                  setVideoFile(file);
                                  setCoverFile(null);
                                  if (file) {
-                                   getVideoDimensions(file)
-                                     .then(({ width, height }) => applyDetectedMediaShape(width, height, 'video'))
-                                     .catch(() => setStatusMsg({ text: 'Video cargado. No se pudo detectar el formato automaticamente.', error: true }));
-                                   generateAutoThumbnail(file)
-                                     .then((frame) => {
-                                       if (frame) setCoverFile(frame);
-                                     })
-                                     .catch(() => undefined);
+                                   Promise.allSettled([getVideoDimensions(file), generateAutoThumbnail(file)])
+                                     .then(([dimensionsResult, posterResult]) => {
+                                       let detectedFormat: PortfolioItem['format_type'] | '' = '';
+                                       let detectedCategory: PortfolioItem['category'] | '' = '';
+
+                                       if (dimensionsResult.status === 'fulfilled') {
+                                         const { width, height } = dimensionsResult.value;
+                                         detectedFormat = inferFormatFromDimensions(width, height);
+                                         detectedCategory = inferCategoryFromMedia(detectedFormat, 'video');
+                                         setFormState(prev => ({
+                                           ...prev,
+                                           format_type: detectedFormat as PortfolioItem['format_type'],
+                                           category: detectedCategory as PortfolioItem['category'],
+                                           thumbnail_url: ''
+                                         }));
+                                       }
+
+                                       if (posterResult.status === 'fulfilled' && posterResult.value) {
+                                         setCoverFile(posterResult.value);
+                                       }
+
+                                       if (posterResult.status === 'fulfilled' && posterResult.value) {
+                                         setStatusMsg({
+                                           text: `Portada auto capturada${detectedFormat ? ` para video ${detectedFormat}` : ''}. Se guardara al publicar.`,
+                                           error: false
+                                         });
+                                       } else if (detectedFormat) {
+                                         setStatusMsg({ text: `Formato detectado: ${detectedFormat}. No se pudo capturar portada auto.`, error: true });
+                                       } else {
+                                         setStatusMsg({ text: 'Video cargado. No se pudo detectar formato ni capturar portada automaticamente.', error: true });
+                                       }
+                                     });
                                  }
                                }}
                              />
@@ -1128,7 +1156,7 @@ export function PortfolioModule() {
                            </label>
                            <input
                              type="text"
-                             placeholder="URL de portada opcional para este reel"
+                             placeholder="URL de portada opcional para este video"
                              value={formState.thumbnail_url}
                              onChange={(e) => {
                                setCoverFile(null);
@@ -1188,8 +1216,8 @@ export function PortfolioModule() {
                                  </div>
                                </div>
                                <div className="space-y-2">
-                                 <span className="block text-[9px] font-black uppercase tracking-widest text-white/40">Portada del reel</span>
-                                 <div className="flex aspect-[9/16] items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                                 <span className="block text-[9px] font-black uppercase tracking-widest text-white/40">Portada auto</span>
+                                 <div className={`flex ${formState.format_type === 'vertical' ? 'aspect-[9/16]' : formState.format_type === 'square' ? 'aspect-square' : 'aspect-video'} items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/5`}>
                                    {coverPreviewUrl ? (
                                      <img src={coverPreviewUrl} alt="Portada capturada" className="h-full w-full object-contain" />
                                    ) : formState.thumbnail_url ? (
