@@ -6,9 +6,11 @@ import {
 } from 'lucide-react';
 import { adminService } from '../lib/adminService';
 import { useAuth } from '../lib/authService';
+import { useToast } from './ToastProvider';
 
 export function LeadsModule() {
   const { token } = useAuth();
+  const { showToast } = useToast();
   const [leads, setLeads] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterOrigin, setFilterOrigin] = useState('all');
@@ -21,10 +23,38 @@ export function LeadsModule() {
     { id: 'discarded', label: 'Descartado' }
   ];
 
+  const showFeedback = (type: 'success' | 'error' | 'info', text: string) => {
+    showToast(type, text);
+  };
+
+  const escapeCsvValue = (value: any) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+
+  const exportLeadsCsv = () => {
+    const headers = ['id', 'name', 'email', 'phone', 'service', 'status', 'origin', 'date', 'value', 'tag', 'device', 'location', 'ip', 'browser', 'notes'];
+    const rows = filteredLeads.map((lead) => headers.map((header) => {
+      const value = header === 'date' ? lead.date || lead.created_at || '' : lead[header];
+      return escapeCsvValue(value ?? '');
+    }).join(','));
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'leads-export.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+    showFeedback('success', 'CSV exportado correctamente.');
+  };
+
   const updateLeadStatus = async (lead: any, status: string) => {
     if (!token) return;
-    await adminService.updateCrmClient(lead.id, { ...lead, status }, token);
-    fetchLeads();
+    try {
+      await adminService.updateCrmClient(lead.id, { ...lead, status }, token);
+      showFeedback('success', `Estado actualizado para ${lead.name}.`);
+      fetchLeads();
+    } catch (error) {
+      showFeedback('error', 'No se pudo actualizar el estado del lead.');
+    }
   };
 
   const convertLead = async (lead: any) => {
@@ -33,9 +63,11 @@ export function LeadsModule() {
 
     try {
       await adminService.convertClient(lead.id, token);
+      showFeedback('success', `${lead.name} fue convertido correctamente.`);
       await fetchLeads();
     } catch (error) {
       console.error('Failed lead conversion:', error);
+      showFeedback('error', 'No se pudo convertir el lead ahora mismo.');
     }
   };
 
@@ -128,7 +160,11 @@ export function LeadsModule() {
                 <option value="Meta Ads (Instagram)">Meta Ads</option>
               </select>
             </div>
-            <button className="bg-green-500/20 text-green-400 hover:bg-green-500 hover:text-white px-6 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap">
+            <button
+              type="button"
+              onClick={exportLeadsCsv}
+              className="bg-green-500/20 text-green-400 hover:bg-green-500 hover:text-white px-6 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all whitespace-nowrap"
+            >
               Exportar CSV
             </button>
           </div>
@@ -236,6 +272,7 @@ export function LeadsModule() {
                       onClick={async () => {
                         if(token) {
                            await adminService.deleteCrmClient(lead.id, token);
+                           showFeedback('success', `Lead ${lead.name} eliminado.`);
                            fetchLeads();
                         }
                       }}

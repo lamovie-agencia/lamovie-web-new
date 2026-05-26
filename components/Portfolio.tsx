@@ -63,14 +63,14 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
   const gridClasses = useMemo(() => {
     switch (displayFormat) {
       case 'vertical':
-        return 'md:row-span-2 md:col-span-1 h-[560px] md:h-full';
+        return 'md:row-span-2 md:col-span-1 min-h-[460px] md:min-h-0';
       case 'featured':
-        return 'md:col-span-2 md:row-span-1 h-[280px] md:h-full';
+        return 'md:col-span-2 md:row-span-1 min-h-[280px]';
       case 'square':
-        return 'col-span-1 row-span-1 h-[280px] md:h-full';
+        return 'col-span-1 row-span-1 min-h-[280px]';
       case 'horizontal':
       default:
-        return 'col-span-1 row-span-1 h-[280px] md:h-full';
+        return 'col-span-1 row-span-1 min-h-[280px]';
     }
   }, [displayFormat]);
 
@@ -90,7 +90,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
       <img 
         src={displayThumbnail} 
         alt={work.title}
-        className={`absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 ${
+        className={`absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 group-hover:scale-105 ${
           isHovered ? 'scale-110 blur-[1px] opacity-30' : 'scale-100 opacity-80'
         }`}
         loading="lazy"
@@ -131,7 +131,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
               loop
               muted
               playsInline
-              className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-center"
             />
           )}
         </div>
@@ -307,7 +307,7 @@ const Portfolio: React.FC = () => {
         <div className="animate-fade-in-up">
           <motion.div 
             layout 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-[280px] mb-16"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-[280px] grid-flow-dense mb-16"
           >
             <AnimatePresence>
               {filteredItems.slice(0, visibleItems).map((work) => (
@@ -385,7 +385,7 @@ const Portfolio: React.FC = () => {
                     <img
                       src={selectedWork.gallery_images[galleryIndex]}
                       alt={`${selectedWork.title} ${galleryIndex + 1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain bg-black"
                     />
                     <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between gap-3">
                       <div className="rounded-full bg-black/60 px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-white/80">

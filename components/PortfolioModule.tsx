@@ -3,7 +3,7 @@ import {
   Film, Image as ImageIcon, Video, Camera, Sparkles, FolderOpen, 
   BarChart, Play, MoreVertical, Plus, Search, Filter, Layers, 
   Activity, Eye, Heart, Share2, UploadCloud, Edit3, Trash, Star,
-  X, Check, AlertCircle, ExternalLink, Minimize2, Maximize2, Palette, Globe
+  X, Check, AlertCircle, ExternalLink, Minimize2, Maximize2, Palette, Globe, Scissors
 } from 'lucide-react';
 import { adminService } from '../lib/adminService';
 import { useAuth } from '../lib/authService';
@@ -81,7 +81,7 @@ const buildAiTitle = ({
   return `${categoryLabel} • ${modeLabel} • ${formatLabel} • ${focus}`;
 };
 
-async function generateAutoThumbnail(file: File): Promise<File | null> {
+async function captureVideoFrame(file: File, seconds = 0.5): Promise<File | null> {
   const objectUrl = URL.createObjectURL(file);
 
   try {
@@ -89,21 +89,23 @@ async function generateAutoThumbnail(file: File): Promise<File | null> {
     video.src = objectUrl;
     video.muted = true;
     video.preload = 'metadata';
+    video.playsInline = true;
 
     await new Promise<void>((resolve, reject) => {
-      video.onloadeddata = () => resolve();
+      video.onloadedmetadata = () => resolve();
       video.onerror = () => reject(new Error('No se pudo cargar el video para generar la portada'));
     });
 
-    video.currentTime = 0;
+    const duration = Number.isFinite(video.duration) ? video.duration : 0;
+    video.currentTime = Math.min(Math.max(seconds, 0), Math.max(duration - 0.1, 0));
     await new Promise<void>((resolve, reject) => {
       video.onseeked = () => resolve();
       video.onerror = () => reject(new Error('No se pudo capturar el frame del reel'));
     });
 
     const canvas = document.createElement('canvas');
-    const width = Math.max(video.videoWidth || 1280, 1280);
-    const height = Math.max(video.videoHeight || 720, 720);
+    const width = video.videoWidth || 1080;
+    const height = video.videoHeight || 1920;
     canvas.width = width;
     canvas.height = height;
     const context = canvas.getContext('2d');
@@ -118,6 +120,8 @@ async function generateAutoThumbnail(file: File): Promise<File | null> {
     URL.revokeObjectURL(objectUrl);
   }
 }
+
+const generateAutoThumbnail = (file: File) => captureVideoFrame(file, 0.5);
 
 // Smart Media Preview with fallbacks
 const SmartMediaPreview = React.memo(({ item }: { item: PortfolioItem }) => {
@@ -191,6 +195,10 @@ export function PortfolioModule() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [carouselFiles, setCarouselFiles] = useState<File[]>([]);
   const [contentMode, setContentMode] = useState<'video' | 'image' | 'carousel'>('video');
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState('');
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState('');
+  const [coverCaptureTime, setCoverCaptureTime] = useState(0.5);
+  const [videoDuration, setVideoDuration] = useState(0);
 
   // States of the Create/Edit form
   const [formState, setFormState] = useState<{
@@ -220,6 +228,29 @@ export function PortfolioModule() {
   useEffect(() => {
     fetchPortfolio();
   }, [token]);
+
+  useEffect(() => {
+    if (!videoFile) {
+      setVideoPreviewUrl('');
+      setVideoDuration(0);
+      return;
+    }
+
+    const url = URL.createObjectURL(videoFile);
+    setVideoPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [videoFile]);
+
+  useEffect(() => {
+    if (!coverFile) {
+      setCoverPreviewUrl('');
+      return;
+    }
+
+    const url = URL.createObjectURL(coverFile);
+    setCoverPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [coverFile]);
 
   const fetchPortfolio = useCallback(async () => {
     if (!token) return;
@@ -255,6 +286,7 @@ export function PortfolioModule() {
     setCoverFile(null);
     setVideoFile(null);
     setCarouselFiles([]);
+    setCoverCaptureTime(0.5);
   };
 
   // Handle open modal for edit
@@ -279,7 +311,22 @@ export function PortfolioModule() {
     setCoverFile(null);
     setVideoFile(null);
     setCarouselFiles([]);
+    setCoverCaptureTime(0.5);
   };
+
+  const captureCoverFromVideo = useCallback(async (seconds = coverCaptureTime) => {
+    if (!videoFile) return;
+    try {
+      const frame = await captureVideoFrame(videoFile, seconds);
+      if (frame) {
+        setCoverFile(frame);
+        setStatusMsg({ text: 'Portada capturada desde el fotograma seleccionado.', error: false });
+      }
+    } catch (err) {
+      console.error(err);
+      setStatusMsg({ text: 'No se pudo capturar ese fotograma del video.', error: true });
+    }
+  }, [coverCaptureTime, videoFile]);
 
   // Safe delete handler
   const handleDelete = async (id: number) => {
@@ -333,7 +380,7 @@ export function PortfolioModule() {
         payload.media_url = upload.url;
         payload.media_source = 'native';
 
-        if (!payload.thumbnail_url && formState.category === 'reels') {
+        if (!payload.thumbnail_url) {
           const autoThumbnail = await generateAutoThumbnail(videoFile);
           if (autoThumbnail) {
             const posterUpload = await adminService.uploadAsset(autoThumbnail, token);
@@ -927,9 +974,75 @@ export function PortfolioModule() {
                                    return;
                                  }
                                  setVideoFile(file);
+                                 setCoverFile(null);
                                }}
                              />
                            </label>
+                           {videoPreviewUrl && (
+                             <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px] gap-4 rounded-2xl border border-white/10 bg-black/40 p-4">
+                               <div className="space-y-3">
+                                 <div className="overflow-hidden rounded-xl border border-white/10 bg-black">
+                                   <video
+                                     src={videoPreviewUrl}
+                                     controls
+                                     muted
+                                     playsInline
+                                     preload="metadata"
+                                     onLoadedMetadata={(e) => {
+                                       const duration = e.currentTarget.duration;
+                                       setVideoDuration(Number.isFinite(duration) ? duration : 0);
+                                     }}
+                                     className="h-64 w-full object-contain"
+                                   />
+                                 </div>
+                                 <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-center">
+                                   <input
+                                     type="range"
+                                     min="0"
+                                     max={Math.max(videoDuration, 1)}
+                                     step="0.1"
+                                     value={coverCaptureTime}
+                                     onChange={(e) => setCoverCaptureTime(Number(e.target.value))}
+                                     className="w-full accent-movie-red"
+                                   />
+                                   <button
+                                     type="button"
+                                     onClick={() => captureCoverFromVideo()}
+                                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-movie-red px-4 py-3 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-red-700"
+                                   >
+                                     <Scissors size={14} /> Tomar portada
+                                   </button>
+                                 </div>
+                                 <div className="flex flex-wrap gap-2">
+                                   {[0.5, 1.5, 3].map((seconds) => (
+                                     <button
+                                       key={seconds}
+                                       type="button"
+                                       onClick={() => {
+                                         setCoverCaptureTime(Math.min(seconds, Math.max(videoDuration, seconds)));
+                                         captureCoverFromVideo(seconds);
+                                       }}
+                                       className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-white/50 hover:border-movie-red hover:text-white"
+                                     >
+                                       Frame {seconds}s
+                                     </button>
+                                   ))}
+                                 </div>
+                               </div>
+                               <div className="space-y-2">
+                                 <span className="block text-[9px] font-black uppercase tracking-widest text-white/40">Portada del reel</span>
+                                 <div className="flex aspect-[9/16] items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                                   {coverPreviewUrl ? (
+                                     <img src={coverPreviewUrl} alt="Portada capturada" className="h-full w-full object-contain" />
+                                   ) : (
+                                     <span className="px-4 text-center text-[9px] font-bold uppercase tracking-widest text-white/30">
+                                       Automatica si no eliges frame
+                                     </span>
+                                   )}
+                                 </div>
+                               </div>
+                             </div>
+                           )}
                          </div>
                        </div>
                      )}
@@ -1006,7 +1119,7 @@ export function PortfolioModule() {
                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                              {carouselFiles.map((file, index) => (
                                <div key={`${file.name}-${index}`} className="relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/40">
-                                 <img src={URL.createObjectURL(file)} alt={`Preview ${index + 1}`} className="h-full w-full object-cover" />
+                                 <img src={URL.createObjectURL(file)} alt={`Preview ${index + 1}`} className="h-full w-full object-contain" />
                                </div>
                              ))}
                            </div>

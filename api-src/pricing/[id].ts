@@ -25,8 +25,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
              features = COALESCE($6, features),
              recommended = COALESCE($7, recommended),
              color = COALESCE($8, color),
-             icon = COALESCE($9, icon)
-         WHERE id = $10
+             icon = COALESCE($9, icon),
+             page = COALESCE($10, page)
+         WHERE id = $11
          RETURNING *`,
         [
           firstDefined(body.name),
@@ -38,6 +39,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           body.recommended === undefined ? null : Boolean(body.recommended),
           firstDefined(body.color),
           firstDefined(body.icon),
+          firstDefined(body.page),
           id
         ]
       );

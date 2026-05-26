@@ -205,6 +205,7 @@ export async function ensureCoreSchema() {
           recommended BOOLEAN DEFAULT FALSE,
           color TEXT DEFAULT '',
           icon TEXT DEFAULT '',
+          page TEXT DEFAULT 'pricing',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -352,6 +353,8 @@ export async function ensureCoreSchema() {
         ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS project_id INTEGER;
         ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS contract_id INTEGER;
         ALTER TABLE admin_transactions ADD COLUMN IF NOT EXISTS activity_date TEXT;
+
+        ALTER TABLE pricing_packages ADD COLUMN IF NOT EXISTS page TEXT DEFAULT 'pricing';
       `);
     })();
   }

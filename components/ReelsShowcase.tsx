@@ -52,14 +52,14 @@ function ReelCard({ reel, onOpen }: { reel: Reel; onOpen: (reel: Reel) => void }
       type="button"
       whileHover={{ y: -8 }}
       onClick={() => onOpen(reel)}
-      className="group shrink-0 w-[190px] sm:w-[230px] md:w-[260px] aspect-[9/16] rounded-[28px] overflow-hidden relative bg-neutral-950 border border-white/10 shadow-2xl text-left"
+      className="group relative aspect-[9/16] w-[72vw] max-w-[230px] shrink-0 snap-center overflow-hidden rounded-[24px] border border-white/10 bg-neutral-950 text-left shadow-2xl sm:w-[230px] md:w-[250px] md:max-w-none md:rounded-[28px]"
     >
       {isFrameSource ? (
         <iframe
           src={src}
           title={reel.title}
           allow="autoplay; encrypted-media; picture-in-picture"
-          className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover:opacity-100 transition-opacity pointer-events-none"
+          className="absolute inset-0 h-full w-full object-cover opacity-75 transition-opacity group-hover:opacity-100 pointer-events-none"
         />
       ) : (
         <video
@@ -71,7 +71,7 @@ function ReelCard({ reel, onOpen }: { reel: Reel; onOpen: (reel: Reel) => void }
           muted
           playsInline
           preload="metadata"
-          className="absolute inset-0 w-full h-full object-cover opacity-75 group-hover:opacity-100 transition-opacity"
+          className="absolute inset-0 h-full w-full object-cover object-center opacity-75 transition-opacity group-hover:opacity-100"
         />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
@@ -127,8 +127,8 @@ export default function ReelsShowcase() {
         </p>
       </div>
 
-      <div className="overflow-x-auto no-scrollbar px-6 pb-4">
-        <div className="flex gap-5 w-max mx-auto">
+      <div className="overflow-x-auto no-scrollbar px-6 pb-4 snap-x snap-mandatory">
+        <div className="mx-auto flex w-max max-w-full gap-4 sm:gap-5 md:max-w-none">
           {visible.map((reel) => (
             <React.Fragment key={reel.id}>
               <ReelCard reel={reel} onOpen={setSelected} />
@@ -156,7 +156,7 @@ export default function ReelsShowcase() {
               initial={{ scale: 0.92, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.92, y: 20 }}
-              className="relative h-[88vh] aspect-[9/16] max-w-[92vw] rounded-[32px] overflow-hidden border border-white/10 bg-neutral-950 shadow-2xl"
+              className="relative aspect-[9/16] h-[82vh] max-h-[760px] max-w-[92vw] overflow-hidden rounded-[28px] border border-white/10 bg-neutral-950 shadow-2xl sm:h-[88vh] sm:rounded-[32px]"
             >
               {/youtube\.com\/embed|player\.vimeo\.com|instagram\.com\/.*\/embed/.test(selected.media_url || selected.video_url || '') ? (
                 <iframe
@@ -173,7 +173,7 @@ export default function ReelsShowcase() {
                   autoPlay
                   controls
                   playsInline
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain bg-black"
                 />
               )}
               <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 to-transparent pointer-events-none">

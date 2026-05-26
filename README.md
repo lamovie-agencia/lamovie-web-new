@@ -28,3 +28,14 @@ DATABASE_URL=postgres://postgres:postgres@localhost:5432/la_movie
 ```
 
 Hosted providers such as Neon, Supabase, Render, or Railway also work. If your provider requires SSL, use the connection string they provide.
+
+## Paquetes y páginas públicas
+
+Cada paquete de precios puede indicar en qué página se renderiza con el campo `page`. Esto permite documentar y controlar visualmente dónde se muestra el paquete:
+
+- `pricing`: se muestra en la sección principal de precios.
+- `home`: se muestra en la home como CTA destacada.
+- `services`: se muestra junto a servicios y oferta destacada.
+- `contact`: se muestra en el flujo de contacto antes de WhatsApp.
+
+En el dashboard, el formulario de paquetes incluye este campo para mantener la visibilidad del paquete alineada con la página deseada.

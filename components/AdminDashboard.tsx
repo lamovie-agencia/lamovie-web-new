@@ -6,6 +6,7 @@ import { LeadsModule } from './LeadsModule';
 import { FinanceModule } from './FinanceModule';
 import { DocsModule } from './DocsModule';
 import { PortfolioModule } from './PortfolioModule';
+import { ToastProvider, useToast } from './ToastProvider';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -66,6 +67,16 @@ const displayCrmStatus = (status: string) => {
   return 'PROSPECTO';
 };
 
+const DEFAULT_CLIENT_LOGOS = [
+  { name: "Distribuidora Papis", logo_url: "https://distribuidorapapis.com/wp-content/uploads/2024/06/cropped-LOGO-DP-BLANCO.png", website_url: "https://distribuidorapapis.com", featured: true },
+  { name: "Cajasai", logo_url: "https://cajasai.com/soporte/wp-content/uploads/2018/03/cropped-LOGO-CAJASAI-VECTORIZADO-2.png", website_url: "https://cajasai.com", featured: true },
+  { name: "Bahia del Sol", logo_url: "https://static.wixstatic.com/media/fd0487_5c8e753e52084b6d8d35d69cc656e65c~mv2.png/v1/crop/x_0,y_894,w_1641,h_923/fill/w_128,h_70,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/logo-letras-azules.png", website_url: "", featured: true },
+  { name: "BHK", logo_url: "https://cdn.shopify.com/s/files/1/0700/3052/4636/files/LOGO_BHK_3.png?v=1766181369", website_url: "", featured: true },
+  { name: "La Vitrina Textil", logo_url: "https://www.lavitrinatextil.com/cdn/shop/files/LOGO_LA_VITRINA_TEXTIL_SINFONDO-02.png?v=1770673573&width=1920", website_url: "https://www.lavitrinatextil.com", featured: true },
+  { name: "Gets Mobile", logo_url: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRNBl9hqGvovWp2aZV69qQf7KSoCI49ws9m4A&s", website_url: "", featured: true },
+  { name: "Grupo Educate", logo_url: "https://www.grupoeducatecolombia.com/wp-content/uploads/2025/10/menu-logo-K.png", website_url: "https://www.grupoeducatecolombia.com", featured: true }
+];
+
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   toolName?: string;
@@ -120,7 +131,7 @@ class ToolErrorBoundary extends React.Component<any, any> {
   }
 }
 
-const AdminDashboard: React.FC = () => {
+const AdminDashboardInner: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [portfolio, setPortfolio] = useState<any[]>([]);
@@ -140,6 +151,11 @@ const AdminDashboard: React.FC = () => {
   const token = getStoredAdminToken();
   const [profile, setProfile] = useState<{ username: string; name: string; role: string; avatar: string } | null>(null);
   const [isVerifying, setIsVerifying] = useState(true);
+  const { showToast } = useToast();
+
+  const showFeedback = useCallback((type: 'success' | 'error' | 'info', text: string) => {
+    showToast(type, text);
+  }, [showToast]);
 
   // Settings Form State
   const [settingsForm, setSettingsForm] = useState({
@@ -228,7 +244,8 @@ const AdminDashboard: React.FC = () => {
     features: '',
     recommended: false,
     color: 'border-white/20',
-    icon: 'Film'
+    icon: 'Film',
+    page: 'pricing'
   });
 
   const [partnerForm, setPartnerForm] = useState({
@@ -350,6 +367,28 @@ const AdminDashboard: React.FC = () => {
     }
     setGlobalSearch('');
   }, [globalSearch]);
+
+  const exportClientsCsv = () => {
+    const headers = ['id', 'name', 'email', 'phone', 'service', 'status', 'value', 'tag', 'reminder', 'origin', 'contract_start', 'contract_end', 'billing_cycle', 'service_value'];
+    const csvRows = [headers.join(',')];
+
+    crmClients.forEach((client: any) => {
+      const row = headers.map((header) => {
+        const value = client[header] ?? '';
+        return `"${String(value).replace(/"/g, '""')}"`;
+      }).join(',');
+      csvRows.push(row);
+    });
+
+    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'clientes-export.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+    showFeedback('success', 'CSV de clientes exportado correctamente.');
+  };
 
   const fetchData = useCallback(async () => {
     const currentToken = getStoredAdminToken();
@@ -519,13 +558,15 @@ const AdminDashboard: React.FC = () => {
       if (editingId) {
         await adminService.updatePortfolio(editingId, portfolioForm, token);
         setEditingId(null);
+        showFeedback('success', 'Portafolio actualizado correctamente.');
       } else {
         await adminService.createPortfolio(portfolioForm, token);
+        showFeedback('success', 'Portafolio creado correctamente.');
       }
       setPortfolioForm({ title: '', category: 'Work', image_url: '', video_url: '', description: '' });
       fetchData();
     } catch (err) {
-      alert('Error al procesar');
+      showFeedback('error', 'No se pudo procesar el portafolio.');
     } finally {
       setIsSubmitting(false);
     }
@@ -540,13 +581,15 @@ const AdminDashboard: React.FC = () => {
       if (editingId) {
         await adminService.updateService(editingId, data, token);
         setEditingId(null);
+        showFeedback('success', 'Servicio actualizado correctamente.');
       } else {
         await adminService.createService(data, token);
+        showFeedback('success', 'Servicio creado correctamente.');
       }
       setServiceForm({ title: '', subtitle: '', description: '', items: '', icon: 'Zap' });
       fetchData();
     } catch (err) {
-      alert('Error al guardar servicio');
+      showFeedback('error', 'No se pudo guardar el servicio.');
     } finally {
       setIsSubmitting(false);
     }
@@ -560,13 +603,15 @@ const AdminDashboard: React.FC = () => {
       if (editingId) {
         await adminService.updateTestimonial(editingId, testimonialForm, token);
         setEditingId(null);
+        showFeedback('success', 'Testimonio actualizado correctamente.');
       } else {
         await adminService.createTestimonial(testimonialForm, token);
+        showFeedback('success', 'Testimonio creado correctamente.');
       }
       setTestimonialForm({ name: '', role: '', content: '', image_url: '', rating: 5 });
       fetchData();
     } catch (err) {
-      alert('Error al guardar testimonio');
+      showFeedback('error', 'No se pudo guardar el testimonio.');
     } finally {
       setIsSubmitting(false);
     }
@@ -580,13 +625,15 @@ const AdminDashboard: React.FC = () => {
       if (editingId) {
         await adminService.updateWebShowcase(editingId, webForm, token);
         setEditingId(null);
+        showFeedback('success', 'Proyecto web actualizado correctamente.');
       } else {
         await adminService.createWebShowcase(webForm, token);
+        showFeedback('success', 'Proyecto web creado correctamente.');
       }
       setWebForm({ title: '', description: '', image_url: '', live_url: '', category: 'E-commerce' });
       fetchData();
     } catch (err) {
-      alert('Error al guardar proyecto web');
+      showFeedback('error', 'No se pudo guardar el proyecto web.');
     } finally {
       setIsSubmitting(false);
     }
@@ -598,14 +645,17 @@ const AdminDashboard: React.FC = () => {
     setIsSubmitting(true);
     try {
       const data = { 
-        ...pricingForm, 
+        ...pricingForm,
+        page: pricingForm.page || 'pricing',
         features: pricingForm.features.split('\n').filter(f => f.trim() !== '') 
       };
       if (editingId) {
         await adminService.updatePricing(editingId, data, token);
         setEditingId(null);
+        showFeedback('success', 'Paquete actualizado correctamente.');
       } else {
         await adminService.createPricing(data, token);
+        showFeedback('success', 'Paquete creado correctamente.');
       }
       setPricingForm({
         name: '',
@@ -616,11 +666,12 @@ const AdminDashboard: React.FC = () => {
         features: '',
         recommended: false,
         color: 'border-white/20',
-        icon: 'Film'
+        icon: 'Film',
+        page: 'pricing'
       });
       fetchData();
     } catch (err) {
-      alert('Error al guardar paquete de precios');
+      showFeedback('error', 'No se pudo guardar el paquete de precios.');
     } finally {
       setIsSubmitting(false);
     }
@@ -634,13 +685,37 @@ const AdminDashboard: React.FC = () => {
       if (editingId) {
         await adminService.updatePartner(editingId, partnerForm, token);
         setEditingId(null);
+        showFeedback('success', 'Partner actualizado correctamente.');
       } else {
         await adminService.createPartner(partnerForm, token);
+        showFeedback('success', 'Partner creado correctamente.');
       }
       setPartnerForm({ name: '', logo_url: '', website_url: '', featured: true });
       fetchData();
     } catch (err) {
-      alert('Error al guardar cliente/partner');
+      showFeedback('error', 'No se pudo guardar el cliente/partner.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSyncDefaultClientLogos = async () => {
+    if (!token) return;
+    setIsSubmitting(true);
+    try {
+      const normalized = (value: string) => value.trim().toLowerCase();
+      for (const logo of DEFAULT_CLIENT_LOGOS) {
+        const existing = partners.find((partner) => normalized(partner.name || '') === normalized(logo.name));
+        if (existing?.id) {
+          await adminService.updatePartner(existing.id, logo, token);
+        } else {
+          await adminService.createPartner(logo, token);
+        }
+      }
+      showFeedback('success', 'Logos de clientes actualizados correctamente.');
+      fetchData();
+    } catch (err) {
+      showFeedback('error', 'No se pudieron sincronizar los logos de clientes.');
     } finally {
       setIsSubmitting(false);
     }
@@ -667,10 +742,10 @@ const AdminDashboard: React.FC = () => {
       }, token);
       await adminService.saveSettings('contact_email', settingsForm.contact_email, token);
       await adminService.saveSettings('whatsapp_number', settingsForm.whatsapp_number, token);
-      alert('Configuración guardada correctamente');
+      showFeedback('success', 'Configuración guardada correctamente.');
       fetchData();
     } catch (err) {
-      alert('Error al guardar configuración');
+      showFeedback('error', 'No se pudo guardar la configuración.');
     } finally {
       setIsSubmitting(false);
     }
@@ -683,9 +758,10 @@ const AdminDashboard: React.FC = () => {
     try {
       await adminService.createTask(taskForm, token); // This requires changing adminService as well if it only accepted title
       setTaskForm({ title: '', due_date: '', reminder: '' });
+      showFeedback('success', 'Tarea creada correctamente.');
       fetchData();
     } catch (err) {
-      alert('Error al guardar tarea');
+      showFeedback('error', 'No se pudo guardar la tarea.');
     } finally {
       setIsSubmitting(false);
     }
@@ -695,9 +771,10 @@ const AdminDashboard: React.FC = () => {
     if (!token) return;
     try {
       await adminService.updateTask(id, { completed: !currentStatus }, token);
+      showFeedback('success', 'Estado de la tarea actualizado.');
       fetchData();
     } catch (err) {
-      alert('Error al actualizar tarea');
+      showFeedback('error', 'No se pudo actualizar la tarea.');
     }
   };
 
@@ -708,9 +785,10 @@ const AdminDashboard: React.FC = () => {
     try {
       await adminService.createNote(noteForm, token);
       setNoteForm({ content: '', reminder: '' });
+      showFeedback('success', 'Nota guardada correctamente.');
       fetchData();
     } catch (err) {
-      alert('Error al guardar nota');
+      showFeedback('error', 'No se pudo guardar la nota.');
     } finally {
       setIsSubmitting(false);
     }
@@ -724,13 +802,15 @@ const AdminDashboard: React.FC = () => {
       if (editingId) {
         await adminService.updateCrmClient(editingId, crmForm, token);
         setEditingId(null);
+        showFeedback('success', 'Cliente CRM actualizado correctamente.');
       } else {
         await adminService.createCrmClient(crmForm, token);
+        showFeedback('success', 'Cliente CRM creado correctamente.');
       }
       setCrmForm({ name: '', email: '', phone: '', status: 'prospect', value: '', tag: '', reminder: '', service: '', contractStart: '', contractEnd: '', serviceValue: '', billingCycle: 'unique' });
       fetchData();
     } catch (err) {
-      alert('Error al guardar cliente CRM');
+      showFeedback('error', 'No se pudo guardar el cliente CRM.');
     } finally {
       setIsSubmitting(false);
     }
@@ -755,14 +835,17 @@ const AdminDashboard: React.FC = () => {
         billingCycle: client.billing_cycle || 'unique'
       };
       await adminService.updateCrmClient(client.id, updatedPayload, currentToken);
+      showFeedback('success', 'Estado del cliente actualizado.');
       fetchData();
     } catch (err) {
       console.error("Failed quick status shift:", err);
+      showFeedback('error', 'No se pudo actualizar el estado del cliente.');
     }
   };
 
   const handleApproveClient = async (client: any) => {
     await handleQuickStatusChange(client, 'active');
+    showFeedback('success', `Registro de ${client.name} aprobado.`);
   };
 
   const handleConvertClient = async (client: any) => {
@@ -773,10 +856,10 @@ const AdminDashboard: React.FC = () => {
     try {
       await adminService.convertClient(client.id, currentToken);
       await fetchData();
-      alert(`Cliente ${client.name} convertido correctamente.`);
+      showFeedback('success', `Cliente ${client.name} convertido correctamente.`);
     } catch (err) {
       console.error('Failed client conversion:', err);
-      alert('No se pudo convertir el cliente en este momento.');
+      showFeedback('error', 'No se pudo convertir el cliente en este momento.');
     }
   };
 
@@ -792,10 +875,11 @@ const AdminDashboard: React.FC = () => {
       if (type === 'tasks') await adminService.deleteTask(id, token);
       if (type === 'notes') await adminService.deleteNote(id, token);
       if (type === 'crm') await adminService.deleteCrmClient(id, token);
+      showFeedback('success', 'Elemento eliminado correctamente.');
       fetchData();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo eliminar el elemento.';
-      alert(message);
+      showFeedback('error', message);
     }
   };
 
@@ -843,7 +927,8 @@ const AdminDashboard: React.FC = () => {
         features: Array.isArray(item.features) ? item.features.join('\n') : '',
         recommended: item.recommended || false,
         color: item.color || 'border-white/20',
-        icon: item.icon || 'Film'
+        icon: item.icon || 'Film',
+        page: item.page || 'pricing'
       });
     } else if (type === 'partners') {
       setPartnerForm({
@@ -1628,6 +1713,13 @@ const AdminDashboard: React.FC = () => {
                           <option value="active">Activos</option>
                           <option value="inactive">Inactivos</option>
                         </select>
+                        <button
+                          type="button"
+                          onClick={exportClientsCsv}
+                          className="bg-blue-500/20 text-blue-200 hover:bg-blue-500 hover:text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                        >
+                          Exportar CSV
+                        </button>
                       </div>
 
                       <div className="flex flex-wrap gap-2 mb-4 bg-white/5 p-3 rounded-[24px] border border-white/5">
@@ -1915,6 +2007,14 @@ const AdminDashboard: React.FC = () => {
                       {editingId ? <Edit size={24} className="text-movie-red" /> : <Plus size={24} className="text-movie-red" />}
                       {editingId ? 'Editar Partner' : 'Nuevo Partner'}
                     </h3>
+                    <button
+                      type="button"
+                      onClick={handleSyncDefaultClientLogos}
+                      disabled={isSubmitting}
+                      className="mb-6 w-full bg-white/10 hover:bg-white/15 border border-white/10 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 disabled:opacity-50"
+                    >
+                      <Users size={16} /> Cargar logos de clientes
+                    </button>
                     <form onSubmit={handlePartnerSubmit} className="space-y-6">
                       <input required type="text" placeholder="Nombre de la empresa" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-movie-red focus:outline-none" value={partnerForm.name} onChange={(e) => setPartnerForm({ ...partnerForm, name: e.target.value })} />
                       <input required type="url" placeholder="URL del logo PNG/SVG" className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-movie-red focus:outline-none" value={partnerForm.logo_url} onChange={(e) => setPartnerForm({ ...partnerForm, logo_url: e.target.value })} />
@@ -2789,6 +2889,19 @@ const AdminDashboard: React.FC = () => {
                     </div>
                   </div>
                   <div>
+                    <label className="block text-[10px] uppercase tracking-[0.3em] text-white/40 mb-3 font-black">Página pública</label>
+                    <select
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white focus:border-movie-red focus:outline-none"
+                      value={pricingForm.page}
+                      onChange={(e) => setPricingForm({...pricingForm, page: e.target.value})}
+                    >
+                      <option value="pricing">pricing</option>
+                      <option value="home">home</option>
+                      <option value="services">services</option>
+                      <option value="contact">contact</option>
+                    </select>
+                  </div>
+                  <div>
                     <label className="block text-[10px] uppercase tracking-[0.3em] text-white/40 mb-3 font-black">Descripción (Solución)</label>
                     <textarea 
                       rows={2}
@@ -2823,7 +2936,7 @@ const AdminDashboard: React.FC = () => {
                         onClick={() => {
                           setEditingId(null);
                           setPricingForm({
-                            name: '', category: 'social', price: '', period: '/ mes', description: '', features: '', recommended: false, color: 'border-white/20', icon: 'Film'
+                            name: '', category: 'social', price: '', period: '/ mes', description: '', features: '', recommended: false, color: 'border-white/20', icon: 'Film', page: 'pricing'
                           });
                         }}
                         className="flex-1 bg-white/5 hover:bg-white/10 text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all"
@@ -3394,4 +3507,10 @@ const AdminDashboard: React.FC = () => {
   );
 };
 
-export default AdminDashboard;
+export default function AdminDashboard() {
+  return (
+    <ToastProvider>
+      <AdminDashboardInner />
+    </ToastProvider>
+  );
+}

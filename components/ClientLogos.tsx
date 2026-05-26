@@ -44,7 +44,7 @@ export default function ClientLogos() {
             <img
               src={brand.logo_url}
               alt={brand.name}
-              className="max-h-12 md:max-h-14 w-auto object-contain"
+            className="h-12 max-w-[180px] object-contain md:h-14 md:max-w-[220px]"
               loading="lazy"
               referrerPolicy="no-referrer"
             />
@@ -54,4 +54,3 @@ export default function ClientLogos() {
     </section>
   );
 }
-

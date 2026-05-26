@@ -58,6 +58,12 @@ const Pricing: React.FC<PricingProps> = ({ whatsappNumber = '573017355046' }) =>
   const [activeTab, setActiveTab] = useState<TabKey>('social');
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPlan, setSelectedPlan] = useState<any | null>(null);
+  const [leadName, setLeadName] = useState('');
+  const [leadCompany, setLeadCompany] = useState('');
+  const [leadEmail, setLeadEmail] = useState('');
+  const [waStatus, setWaStatus] = useState('');
+  const [isOpeningWa, setIsOpeningWa] = useState(false);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -86,6 +92,25 @@ const Pricing: React.FC<PricingProps> = ({ whatsappNumber = '573017355046' }) =>
   }, []);
 
   const currentPlans = useMemo(() => plans.filter((plan) => plan.category === activeTab), [plans, activeTab]);
+
+  const handleOpenWhatsapp = (plan: any) => {
+    const name = leadName.trim() || 'Cliente';
+    const company = leadCompany.trim() || 'Sin empresa';
+    const email = leadEmail.trim() || 'sin correo';
+
+    if (!leadName.trim()) {
+      setWaStatus('Escribe tu nombre para continuar por WhatsApp.');
+      return;
+    }
+
+    setIsOpeningWa(true);
+    const message = `Hola, soy ${name}. Quiero conocer el plan ${plan.name} para ${company}. Correo: ${email}.`;
+    const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setWaStatus(`Redirigiendo a WhatsApp para ${plan.name}.`);
+    setIsOpeningWa(false);
+  };
 
   if (loading) {
     return null;
@@ -178,6 +203,9 @@ const Pricing: React.FC<PricingProps> = ({ whatsappNumber = '573017355046' }) =>
                   <h4 className="mt-6 text-2xl md:text-[1.6rem] font-heading font-black uppercase italic text-white leading-tight">
                     {plan.name}
                   </h4>
+                  <div className="mt-3 inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[9px] uppercase tracking-[0.3em] text-white/70">
+                    Página: {plan.page || 'pricing'}
+                  </div>
                   <p className="mt-4 text-sm leading-relaxed text-white/70 border-l border-white/10 pl-3 min-h-[88px]">
                     {plan.description || 'Plan dinámico listo para vender con claridad y urgencia comercial.'}
                   </p>
@@ -207,10 +235,12 @@ const Pricing: React.FC<PricingProps> = ({ whatsappNumber = '573017355046' }) =>
                 </div>
 
                 <div className="px-8 pb-8 pt-2">
-                  <a
-                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hola, me interesa iniciar con el plan ${plan.name}`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedPlan(plan);
+                      setWaStatus('');
+                    }}
                     className={`inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-4 text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-300 ${
                       isRecommended
                         ? 'bg-red-500 text-white shadow-[0_20px_45px_rgba(239,68,68,0.35)] hover:bg-white hover:text-black'
@@ -219,12 +249,77 @@ const Pricing: React.FC<PricingProps> = ({ whatsappNumber = '573017355046' }) =>
                   >
                     {tabMeta[activeTab].cta}
                     <span className="text-base">↗</span>
-                  </a>
+                  </button>
                 </div>
               </motion.div>
             );
           })}
         </div>
+
+        {selectedPlan && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 px-4 py-10">
+            <div className="w-full max-w-lg rounded-[28px] border border-white/10 bg-[#090909] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.35em] text-red-300 font-black">Formulario previo</p>
+                  <h4 className="mt-3 text-2xl font-black uppercase italic text-white">Continuar con {selectedPlan.name}</h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPlan(null);
+                    setWaStatus('');
+                  }}
+                  className="rounded-full border border-white/10 px-3 py-1 text-[10px] uppercase tracking-[0.3em] text-white/70"
+                >
+                  Cerrar
+                </button>
+              </div>
+              <p className="mt-3 text-sm text-white/70">Completa estos datos para abrir WhatsApp con el paquete correcto y un mensaje listo para enviar.</p>
+              <div className="mt-6 space-y-3">
+                <input
+                  type="text"
+                  value={leadName}
+                  onChange={(e) => setLeadName(e.target.value)}
+                  placeholder="Nombre completo"
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40"
+                />
+                <input
+                  type="text"
+                  value={leadCompany}
+                  onChange={(e) => setLeadCompany(e.target.value)}
+                  placeholder="Empresa o marca"
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40"
+                />
+                <input
+                  type="email"
+                  value={leadEmail}
+                  onChange={(e) => setLeadEmail(e.target.value)}
+                  placeholder="Correo electrónico"
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder:text-white/40"
+                />
+              </div>
+              {waStatus && <p className="mt-4 text-xs text-yellow-300">{waStatus}</p>}
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleOpenWhatsapp(selectedPlan)}
+                  disabled={isOpeningWa}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-red-500 px-5 py-3 text-[10px] font-black uppercase tracking-[0.3em] text-white"
+                >
+                  {isOpeningWa ? 'Abriendo...' : 'Enviar a WhatsApp'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlan(null)}
+                  className="inline-flex items-center justify-center rounded-2xl border border-white/10 px-5 py-3 text-[10px] font-black uppercase tracking-[0.3em] text-white/80"
+                >
+                  Volver
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-12 text-center">
           <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-4 py-2 text-[10px] uppercase tracking-[0.35em] text-white/60">
