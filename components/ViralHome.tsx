@@ -69,13 +69,13 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
   }, []);
 
   return (
-    <div className="bg-[#030303] text-white min-h-screen overflow-hidden font-sans selection:bg-movie-red selection:text-white pb-20">
+    <div className="bg-[#030303] text-white min-h-screen overflow-x-hidden font-sans selection:bg-movie-red selection:text-white pb-20">
       <SEO 
         title="Inicio | Agencia de Marketing Digital y Tráfico Web" 
         description="Agencia creativa, producción viral, tráfico web y estrategias de marketing digital para marcas y creadores de todas las industrias y nichos."
       />
       {/* 1. HERO CON TEXTURA Y CTA CREATIVO */}
-      <section className="relative min-h-[90vh] flex flex-col justify-center items-center py-20 overflow-hidden">
+      <section className="relative min-h-[92svh] flex flex-col justify-center items-center py-24 sm:py-20 overflow-hidden">
         {/* Subtle Background Video */}
         <div className="absolute inset-0 opacity-20 z-[1] mix-blend-screen pointer-events-none">
            <video autoPlay loop muted playsInline className="w-full h-full object-cover">
@@ -88,25 +88,25 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
         <div className="absolute inset-0 bg-gradient-to-b from-[#1a0505]/90 via-[#050505]/90 to-[#030303] z-[3] pointer-events-none"></div>
         
         {/* Blur shapes */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-movie-red/20 rounded-full blur-[120px] animate-pulse z-[3]"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-900/20 rounded-full blur-[120px] animate-pulse-slow z-[3]"></div>
+        <div className="absolute top-1/4 left-1/4 w-56 h-56 sm:w-96 sm:h-96 bg-movie-red/20 rounded-full blur-[90px] sm:blur-[120px] animate-pulse z-[3]"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-56 h-56 sm:w-96 sm:h-96 bg-blue-900/20 rounded-full blur-[90px] sm:blur-[120px] animate-pulse-slow z-[3]"></div>
 
-        <div className="container mx-auto px-6 relative z-10 text-center mt-20 md:mt-10">
+        <div className="container mx-auto px-4 sm:px-6 relative z-10 text-center mt-16 md:mt-10 max-w-7xl">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-movie-red/50 bg-white/5 backdrop-blur-md mb-8 text-[10px] md:text-xs font-bold uppercase tracking-widest text-movie-silver shadow-[0_0_20px_rgba(176,35,46,0.2)] animate-pulse-slow"
+            className="inline-flex max-w-full items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-full border border-movie-red/50 bg-white/5 backdrop-blur-md mb-7 sm:mb-8 text-[9px] md:text-xs font-bold uppercase tracking-[0.16em] sm:tracking-widest text-movie-silver shadow-[0_0_20px_rgba(176,35,46,0.2)] animate-pulse-slow"
           >
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-            Domina el Algoritmo. Rompe el Internet.
+            <span className="truncate">Domina el Algoritmo. Rompe el Internet.</span>
           </motion.div>
 
           <motion.h1 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1, delay: 0.2 }}
-            className="text-[12vw] md:text-[8vw] font-heading font-black uppercase leading-[0.9] tracking-tighter mb-6 min-h-[1em] text-white"
+            className="text-[clamp(2.9rem,13vw,8.5rem)] md:text-[clamp(5rem,8vw,9.5rem)] font-heading font-black uppercase leading-[0.88] tracking-tight md:tracking-tighter mb-6 min-h-[1em] text-white text-balance"
           >
             HACEMOS<br />
             <AnimatePresence mode="wait">
@@ -116,7 +116,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
                 animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 exit={{ opacity: 0, y: -20, filter: "blur(10px)" }}
                 transition={{ duration: 0.5 }}
-                className="inline-block text-transparent bg-clip-text bg-gradient-to-r from-movie-red via-red-500 to-orange-500 italic"
+                className="inline-block max-w-full text-transparent bg-clip-text bg-gradient-to-r from-movie-red via-red-500 to-orange-500 italic break-words"
               >
                 {words[currentWord]}
               </motion.span>
@@ -127,7 +127,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1, delay: 0.4 }}
-            className="text-lg md:text-2xl text-white/60 font-light max-w-2xl mx-auto mb-10 border-l-2 border-movie-red/50 pl-6 text-left md:text-center leading-relaxed"
+            className="text-base sm:text-lg md:text-2xl text-white/60 font-light max-w-2xl mx-auto mb-8 sm:mb-10 border-l-2 md:border-l-0 md:border-b-2 border-movie-red/50 pl-4 sm:pl-6 md:pl-0 md:pb-6 text-left md:text-center leading-relaxed"
           >
             No hacemos <strong className="text-white font-extrabold">"videos bonitos"</strong>. Construimos <strong className="text-white font-extrabold border-b border-movie-red/30">estrategias audiovisuales</strong> diseñadas estratégicamente para <strong className="text-movie-red font-black tracking-wide">retener, impactar y convertir</strong>.
           </motion.p>
@@ -137,9 +137,9 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.6 }}
             onClick={handleCTA}
-            className="group relative overflow-hidden bg-white text-black px-10 md:px-14 py-5 md:py-6 rounded-full font-black uppercase tracking-[0.2em] text-xs md:text-sm transition-all hover:scale-105 shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:shadow-[0_0_60px_rgba(255,255,255,0.4)]"
+            className="group relative max-w-full overflow-hidden bg-white text-black px-6 sm:px-10 md:px-14 py-4 sm:py-5 md:py-6 rounded-full font-black uppercase tracking-[0.12em] sm:tracking-[0.2em] text-[11px] md:text-sm transition-all hover:scale-105 shadow-[0_0_40px_rgba(255,255,255,0.2)] hover:shadow-[0_0_60px_rgba(255,255,255,0.4)]"
           >
-            <span className="relative z-10 flex items-center gap-3">
+            <span className="relative z-10 flex items-center justify-center gap-3 whitespace-normal text-center">
               Quiero ser Viral <Zap size={18} className="text-movie-red group-hover:scale-125 transition-transform" />
             </span>
             <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-gray-100 via-white to-gray-200 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
@@ -209,36 +209,36 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
       <ClientLogos />
       <ReelsShowcase />
 
-      <section className="py-32 container mx-auto px-6 relative">
-        <div className="grid md:grid-cols-2 gap-16 items-center">
+      <section className="py-20 sm:py-32 container mx-auto px-4 sm:px-6 relative">
+        <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">
           <motion.div 
             initial={{ opacity: 0, x: -50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="space-y-8"
+            className="space-y-7 sm:space-y-8 min-w-0"
           >
-            <h2 className="text-4xl md:text-6xl font-heading font-black uppercase italic text-white leading-tight">
+            <h2 className="text-3xl sm:text-4xl md:text-6xl font-heading font-black uppercase italic text-white leading-tight text-balance">
               Nuestra <span className="text-movie-red">Trayectoria</span> habla por sí sola.
             </h2>
-            <p className="text-white/60 text-lg font-light leading-relaxed">
+            <p className="text-white/60 text-base sm:text-lg font-light leading-relaxed">
               No solo "manejamos redes". Dominamos la atención y el <strong>tráfico de pago</strong>. Maximizamos el ROI mediante estrategias omnicanal para E-commerce, Bienes Raíces e Infoproductos.
             </p>
-            <div className="grid grid-cols-2 gap-8 pt-8 border-t border-white/10">
+            <div className="grid grid-cols-2 gap-5 sm:gap-8 pt-8 border-t border-white/10">
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}>
-                <div className="text-5xl font-black text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-movie-red to-white">50+</div>
+                <div className="text-4xl sm:text-5xl font-black text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-movie-red to-white">50+</div>
                 <div className="text-xs uppercase tracking-widest text-movie-silver font-bold">Marcas Escaladas</div>
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }}>
-                <div className="text-5xl font-black text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-movie-red to-white">$2M+</div>
+                <div className="text-4xl sm:text-5xl font-black text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-movie-red to-white">$2M+</div>
                 <div className="text-xs uppercase tracking-widest text-movie-silver font-bold">En Retorno (Ads)</div>
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.4 }}>
-                <div className="text-5xl font-black text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-movie-red to-white">98%</div>
+                <div className="text-4xl sm:text-5xl font-black text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-movie-red to-white">98%</div>
                 <div className="text-xs uppercase tracking-widest text-movie-silver font-bold">Retención Lograda</div>
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.5 }}>
-                <div className="text-5xl font-black text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-movie-red to-white">24/7</div>
+                <div className="text-4xl sm:text-5xl font-black text-white mb-2 bg-clip-text text-transparent bg-gradient-to-r from-movie-red to-white">24/7</div>
                 <div className="text-xs uppercase tracking-widest text-movie-silver font-bold">Obsesión Pura</div>
               </motion.div>
             </div>
@@ -248,7 +248,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="relative h-[600px] rounded-3xl overflow-hidden border border-white/10"
+            className="relative h-[420px] sm:h-[520px] lg:h-[600px] rounded-3xl overflow-hidden border border-white/10"
           >
              <video autoPlay loop muted playsInline className="w-full h-full object-cover grayscale opacity-60 hover:grayscale-0 transition-all duration-700">
                 <source src={REELS[0]} type="video/mp4" />
@@ -259,23 +259,23 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
       </section>
 
       {/* NEW: TRAFICO WEB Y PERFORMANCE (NICHE SECTION) */}
-      <section className="py-24 bg-[#0a0505] text-white relative overflow-hidden border-y border-white/5 shadow-[0_0_60px_rgba(176,35,46,0.15)]">
+      <section className="py-20 sm:py-24 bg-[#0a0505] text-white relative overflow-hidden border-y border-white/5 shadow-[0_0_60px_rgba(176,35,46,0.15)]">
         {/* Rich background grid and neon flares mimicking a studio mixer/console layout */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,#b0232e/15,transparent_50%)] pointer-events-none"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,#f97316/10,transparent_50%)] pointer-events-none"></div>
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:32px_32px] opacity-40 pointer-events-none"></div>
         
-        <div className="container mx-auto px-6 relative z-10">
+        <div className="container mx-auto px-4 sm:px-6 relative z-10">
            <motion.div 
              initial={{ opacity: 0, y: 30 }}
              whileInView={{ opacity: 1, y: 0 }}
              viewport={{ once: true }}
              className="max-w-4xl mx-auto text-center mb-16"
            >
-             <h2 className="text-4xl md:text-7xl font-heading font-black uppercase tracking-tighter mb-4 text-transparent bg-clip-text bg-gradient-to-r from-white via-orange-200 to-red-500 drop-shadow-[0_2px_10px_rgba(176,35,46,0.3)]">
+             <h2 className="text-3xl sm:text-4xl md:text-7xl font-heading font-black uppercase tracking-tight md:tracking-tighter leading-tight mb-4 text-transparent bg-clip-text bg-gradient-to-r from-white via-orange-200 to-red-500 drop-shadow-[0_2px_10px_rgba(176,35,46,0.3)] text-balance">
                MÁS ALLÁ DE LOS LIKES:<br/>TRÁFICO & PERFORMANCE
              </h2>
-             <p className="text-white/75 font-light text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+             <p className="text-white/75 font-light text-base sm:text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
                Construimos <strong className="text-white font-extrabold underline decoration-movie-red decoration-2 underline-offset-4">máquinas de ventas</strong>. No solo capturamos miradas efímeras, <strong className="text-amber-400 font-extrabold drop-shadow-[0_0_8px_rgba(251,191,36,0.3)]">explotamos tu facturación real</strong> de punta a punta.
              </p>
            </motion.div>
@@ -283,7 +283,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <motion.div 
                 initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-                className="bg-black/80 p-8 rounded-3xl backdrop-blur-md border border-white/5 hover:border-red-500/50 text-white transition-all duration-500 group hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(176,35,46,0.2)] ring-1 ring-white/10 hover:ring-red-500/30 relative overflow-hidden"
+                className="bg-black/80 p-6 sm:p-8 rounded-3xl backdrop-blur-md border border-white/5 hover:border-red-500/50 text-white transition-all duration-500 group hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(176,35,46,0.2)] ring-1 ring-white/10 hover:ring-red-500/30 relative overflow-hidden"
               >
                  <div className="absolute top-0 right-0 w-24 h-24 bg-movie-red/5 blur-2xl rounded-full group-hover:bg-movie-red/10 transition-all duration-500"></div>
                  <Target size={40} className="mb-4 text-movie-red group-hover:scale-110 transition-transform filter drop-shadow-[0_0_10px_rgba(176,35,46,0.4)]" />
@@ -295,7 +295,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
               
               <motion.div 
                 initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }}
-                className="bg-black/80 p-8 rounded-3xl backdrop-blur-md border border-white/5 hover:border-orange-500/50 text-white transition-all duration-500 group hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(249,115,22,0.2)] ring-1 ring-white/10 hover:ring-orange-500/30 relative overflow-hidden"
+                className="bg-black/80 p-6 sm:p-8 rounded-3xl backdrop-blur-md border border-white/5 hover:border-orange-500/50 text-white transition-all duration-500 group hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(249,115,22,0.2)] ring-1 ring-white/10 hover:ring-orange-500/30 relative overflow-hidden"
               >
                  <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/5 blur-2xl rounded-full group-hover:bg-orange-500/10 transition-all duration-500"></div>
                  <TrendingUp size={40} className="mb-4 text-orange-500 group-hover:scale-110 transition-transform filter drop-shadow-[0_0_10px_rgba(249,115,22,0.4)]" />
@@ -307,7 +307,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
               
               <motion.div 
                 initial={{ opacity: 0, y: 50 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }}
-                className="bg-black/80 p-8 rounded-3xl backdrop-blur-md border border-white/5 hover:border-red-400/50 text-white transition-all duration-500 group hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(176,35,46,0.2)] ring-1 ring-white/10 hover:ring-red-400/30 relative overflow-hidden"
+                className="bg-black/80 p-6 sm:p-8 rounded-3xl backdrop-blur-md border border-white/5 hover:border-red-400/50 text-white transition-all duration-500 group hover:-translate-y-2 hover:shadow-[0_0_30px_rgba(176,35,46,0.2)] ring-1 ring-white/10 hover:ring-red-400/30 relative overflow-hidden"
               >
                  <div className="absolute top-0 right-0 w-24 h-24 bg-red-400/5 blur-2xl rounded-full group-hover:bg-red-400/10 transition-all duration-500"></div>
                  <Users size={40} className="mb-4 text-red-500 group-hover:scale-110 transition-transform filter drop-shadow-[0_0_10px_rgba(239,68,68,0.4)]" />
@@ -321,7 +321,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
       </section>
       
       {/* 5. SERVICIOS VIRALES (Grid) */}
-      <section className="py-24 bg-[#0a0a0a] border-y border-white/5 relative overflow-hidden">
+      <section className="py-20 sm:py-24 bg-[#0a0a0a] border-y border-white/5 relative overflow-hidden">
          {/* Subtle Background Video */}
          <div className="absolute inset-0 opacity-10 z-[1] mix-blend-lighten pointer-events-none">
            <video autoPlay loop muted playsInline className="w-full h-full object-cover">
@@ -329,15 +329,15 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
            </video>
         </div>
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 z-[2]"></div>
-        <div className="container mx-auto px-6 relative z-10">
+        <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-6xl font-heading font-black uppercase text-white mb-4">Lo que hacemos.</h2>
-            <p className="text-white/60 text-lg">Servicios diseñados para dominar tu nicho.</p>
+            <h2 className="text-3xl sm:text-4xl md:text-6xl font-heading font-black uppercase text-white mb-4">Lo que hacemos.</h2>
+            <p className="text-white/60 text-base sm:text-lg">Servicios diseñados para dominar tu nicho.</p>
           </motion.div>
           
           <div className="grid md:grid-cols-2 gap-6 relative z-10">
@@ -348,7 +348,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
                 whileInView={{ opacity: 1, scale: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: idx * 0.2 }}
-                className="group bg-[#111]/80 backdrop-blur-md border border-white/10 p-10 rounded-3xl hover:border-movie-red hover:shadow-[0_0_30px_rgba(176,35,46,0.3)] transition-all duration-500 overflow-hidden relative"
+                className="group bg-[#111]/80 backdrop-blur-md border border-white/10 p-6 sm:p-10 rounded-3xl hover:border-movie-red hover:shadow-[0_0_30px_rgba(176,35,46,0.3)] transition-all duration-500 overflow-hidden relative"
               >
                  <div className="absolute top-0 left-0 w-1/2 h-1 bg-gradient-to-r from-transparent to-movie-red opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <div className="text-movie-red mb-6 bg-movie-red/10 w-16 h-16 flex items-center justify-center rounded-2xl group-hover:scale-110 group-hover:bg-movie-red group-hover:text-white transition-all duration-300">
@@ -369,7 +369,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
       <Pricing whatsappNumber={whatsappNumber} />
 
       {/* 6. TIPS CLAVES (Cards horiz) */}
-      <section className="py-32 container mx-auto px-6 relative z-10">
+      <section className="py-20 sm:py-32 container mx-auto px-4 sm:px-6 relative z-10">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#030303] to-[#111] -z-10 pointer-events-none"></div>
         <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6 relative z-10">
           <motion.div 
@@ -379,7 +379,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
             className="max-w-2xl border-l-4 border-movie-red pl-6"
           >
             <h2 className="text-3xl md:text-5xl font-heading font-black uppercase text-white mb-4 drop-shadow-lg">Tips Claves para Viralizar</h2>
-            <p className="text-white/60 text-lg">El secreto no es suerte. Es psicología, retención y diseño. Aplica esto y verás resultados.</p>
+            <p className="text-white/60 text-base sm:text-lg">El secreto no es suerte. Es psicología, retención y diseño. Aplica esto y verás resultados.</p>
           </motion.div>
         </div>
 
@@ -391,7 +391,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: idx * 0.15 }}
-              className="group relative bg-[#0a0a0a]/80 backdrop-blur-md border border-white/10 p-8 rounded-3xl flex flex-col items-start hover:bg-[#111] transition-colors overflow-hidden"
+              className="group relative bg-[#0a0a0a]/80 backdrop-blur-md border border-white/10 p-6 sm:p-8 rounded-3xl flex flex-col items-start hover:bg-[#111] transition-colors overflow-hidden"
             >
               {/* Dynamic Animated Border on Hover */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-movie-red/40 to-transparent -translate-x-[200%] group-hover:translate-x-[200%] transition-transform duration-1000"></div>

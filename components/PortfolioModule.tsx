@@ -1272,7 +1272,8 @@ export function PortfolioModule() {
                              multiple
                              className="hidden"
                              onChange={(e) => {
-                               const files = Array.from(e.target.files || []);
+                               const inputFiles = e.currentTarget.files;
+                               const files: File[] = inputFiles ? Array.from(inputFiles) : [];
                                if (files.some((file) => file.size > 4 * 1024 * 1024)) {
                                  setStatusMsg({ text: 'Una imagen supera el limite de 4 MB.', error: true });
                                  e.currentTarget.value = '';
