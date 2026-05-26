@@ -188,6 +188,8 @@ const SmartMediaPreview = React.memo(({ item }: { item: PortfolioItem }) => {
   const displayCategory = item.category ?? "cinema";
   const displayViews = item.views ?? (1000 + (item.id % 77) * 115);
   const displayLikes = item.likes ?? (200 + (item.id % 43) * 22);
+  const hasExplicitPoster = Boolean(item.thumbnail_url || item.image_url || item.gallery_images?.[0]);
+  const canUseVideoFrame = !hasExplicitPoster && displayCategory === 'reels' && Boolean(item.media_url) && (item.media_source === 'native' || !item.media_source);
 
   return (
     <div 
@@ -195,12 +197,22 @@ const SmartMediaPreview = React.memo(({ item }: { item: PortfolioItem }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <img 
-        src={displayThumbnail} 
-        alt={item.title} 
-        className={`w-full h-full object-cover transition-all duration-700 ${isHovered ? 'scale-110 blur-[2px] opacity-40' : 'scale-100 opacity-80'}`}
-        loading="lazy"
-      />
+      {canUseVideoFrame ? (
+        <video
+          src={item.media_url}
+          muted
+          playsInline
+          preload="metadata"
+          className={`w-full h-full object-contain transition-all duration-700 ${isHovered ? 'scale-105 blur-[2px] opacity-40' : 'scale-100 opacity-90'}`}
+        />
+      ) : (
+        <img
+          src={displayThumbnail}
+          alt={item.title}
+          className={`w-full h-full object-contain transition-all duration-700 ${isHovered ? 'scale-105 blur-[2px] opacity-40' : 'scale-100 opacity-90'}`}
+          loading="lazy"
+        />
+      )}
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
       
       {/* Simulation/visual indicator of a playing video */}
@@ -685,7 +697,7 @@ export function PortfolioModule() {
                             <div key={item.id} className="flex items-center gap-4 bg-black/40 p-3 rounded-2xl border border-white/5 hover:bg-white/5 transition-all">
                                <span className="text-xl font-black text-white/20 italic w-4">{idx + 1}</span>
                                <div className="w-16 h-12 rounded-lg overflow-hidden shrink-0 border border-white/5">
-                                 <img src={thumb} alt="thumb" className="w-full h-full object-cover" />
+                                 <img src={thumb} alt="thumb" className="w-full h-full object-contain bg-black" />
                                </div>
                                <div className="flex-1 min-w-0">
                                   <h5 className="font-bold text-xs text-white truncate">{item.title ?? "Sin título"}</h5>
@@ -958,7 +970,7 @@ export function PortfolioModule() {
                    </div>
 
                    {/* Media URL & Source */}
-                   <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-4">
+                   <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-5">
                      <div className="flex items-center justify-between gap-3">
                        <h4 className="text-[10px] font-black uppercase tracking-widest text-movie-red flex items-center gap-2">
                          <Video size={14} /> Flujo de contenido visual
@@ -966,6 +978,33 @@ export function PortfolioModule() {
                        <span className="text-[9px] uppercase tracking-widest text-white/40">
                          {contentMode === 'video' ? 'Video / enlace' : contentMode === 'image' ? 'Imagen editorial' : 'Carrusel Instagram'}
                        </span>
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                       <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                         <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white">
+                           <Scissors size={14} className="text-movie-red" /> Portada auto
+                         </div>
+                         <p className="text-[10px] leading-relaxed text-white/45">
+                           Al subir un reel nativo se captura un fotograma y queda guardado como portada.
+                         </p>
+                       </div>
+                       <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                         <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white">
+                           <UploadCloud size={14} className="text-movie-red" /> Portada manual
+                         </div>
+                         <p className="text-[10px] leading-relaxed text-white/45">
+                           Puedes reemplazar la portada automática por una imagen subida o una URL.
+                         </p>
+                       </div>
+                       <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                         <div className="mb-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white">
+                           <Maximize2 size={14} className="text-movie-red" /> Sin recorte
+                         </div>
+                         <p className="text-[10px] leading-relaxed text-white/45">
+                           Las imágenes se muestran completas y respetan su proporción original.
+                         </p>
+                       </div>
                      </div>
 
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -1025,7 +1064,7 @@ export function PortfolioModule() {
                            </span>
                          </div>
 
-                         <div className="border-t border-white/10 pt-4">
+                         <div className="border-t border-white/10 pt-4 space-y-4">
                            <label className="block text-[9px] font-bold uppercase tracking-widest text-white/30 mb-2">O subir video nativo (max 4 MB)</label>
                            <label className="flex items-center justify-between gap-3 bg-black/40 border border-dashed border-white/15 hover:border-movie-red rounded-xl px-4 py-3 cursor-pointer transition-all">
                              <span className="flex items-center gap-2 text-xs text-white/60">
@@ -1058,6 +1097,45 @@ export function PortfolioModule() {
                                }}
                              />
                            </label>
+                           <label className="flex items-center justify-between gap-3 bg-white/5 border border-dashed border-white/15 hover:border-movie-red rounded-xl px-4 py-3 cursor-pointer transition-all">
+                             <span className="flex items-center gap-2 text-xs text-white/60">
+                               <ImageIcon size={16} />
+                               {coverFile ? coverFile.name : 'Portada manual opcional (imagen)'}
+                             </span>
+                             <input
+                               type="file"
+                               accept="image/*"
+                               className="hidden"
+                               onChange={(e) => {
+                                 const file = e.target.files?.[0] || null;
+                                 if (file && file.size > 4 * 1024 * 1024) {
+                                   setStatusMsg({ text: 'La portada supera el limite de 4 MB.', error: true });
+                                   e.currentTarget.value = '';
+                                   return;
+                                 }
+                                 setCoverFile(file);
+                                 if (file) {
+                                   getImageDimensions(file)
+                                     .then(({ width, height }) => {
+                                       const format = inferFormatFromDimensions(width, height);
+                                       setFormState(prev => ({ ...prev, thumbnail_url: '', format_type: format }));
+                                       setStatusMsg({ text: `Portada manual cargada en formato ${format}.`, error: false });
+                                     })
+                                     .catch(() => setStatusMsg({ text: 'Portada cargada. No se pudo detectar el formato automaticamente.', error: true }));
+                                 }
+                               }}
+                             />
+                           </label>
+                           <input
+                             type="text"
+                             placeholder="URL de portada opcional para este reel"
+                             value={formState.thumbnail_url}
+                             onChange={(e) => {
+                               setCoverFile(null);
+                               setFormState(prev => ({ ...prev, thumbnail_url: e.target.value }));
+                             }}
+                             className="w-full bg-black/40 border border-white/10 focus:border-movie-red rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition-all"
+                           />
                            {videoPreviewUrl && (
                              <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px] gap-4 rounded-2xl border border-white/10 bg-black/40 p-4">
                                <div className="space-y-3">
@@ -1114,6 +1192,8 @@ export function PortfolioModule() {
                                  <div className="flex aspect-[9/16] items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
                                    {coverPreviewUrl ? (
                                      <img src={coverPreviewUrl} alt="Portada capturada" className="h-full w-full object-contain" />
+                                   ) : formState.thumbnail_url ? (
+                                     <img src={formState.thumbnail_url} alt="Portada configurada" className="h-full w-full object-contain" />
                                    ) : (
                                      <span className="px-4 text-center text-[9px] font-bold uppercase tracking-widest text-white/30">
                                        Automatica si no eliges frame
@@ -1164,6 +1244,15 @@ export function PortfolioModule() {
                            onChange={(e) => setFormState(prev => ({ ...prev, thumbnail_url: e.target.value }))}
                            className="w-full bg-white/5 border border-white/10 focus:border-movie-red rounded-xl px-4 py-3 text-xs text-white focus:outline-none transition-all"
                          />
+                         {(coverPreviewUrl || formState.thumbnail_url) && (
+                           <div className="flex min-h-48 items-center justify-center rounded-2xl border border-white/10 bg-black/40 p-3">
+                             <img
+                               src={coverPreviewUrl || formState.thumbnail_url}
+                               alt="Vista previa de imagen"
+                               className="max-h-80 w-full object-contain"
+                             />
+                           </div>
+                         )}
                        </div>
                      )}
 
@@ -1229,7 +1318,7 @@ export function PortfolioModule() {
                                   formState.thumbnail_url === preset ? 'border-movie-red scale-105' : 'border-white/10 opacity-70 hover:opacity-100'
                                 }`}
                               >
-                                 <img src={preset} alt="preset" className="w-full h-full object-cover" />
+                                 <img src={preset} alt="preset" className="w-full h-full object-contain bg-black" />
                               </button>
                            ))}
                         </div>

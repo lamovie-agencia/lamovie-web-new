@@ -59,7 +59,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
   const displayCategory = work.category ?? "cinema";
   const displayFormat = work.format_type ?? "horizontal";
   const hasExplicitPoster = Boolean(work.thumbnail_url || work.image_url || work.gallery_images?.[0]);
-  const canUseVideoFrame = !hasExplicitPoster && Boolean(work.media_url) && (work.media_source === 'native' || !work.media_source);
+  const canUseVideoFrame = !hasExplicitPoster && displayCategory === 'reels' && Boolean(work.media_url) && (work.media_source === 'native' || !work.media_source);
 
   // Dynamic layout grid spacing configuration
   const gridClasses = useMemo(() => {
@@ -95,16 +95,16 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
           muted
           playsInline
           preload="metadata"
-          className={`absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 group-hover:scale-105 ${
-            isHovered ? 'scale-110 blur-[1px] opacity-30' : 'scale-100 opacity-80'
+          className={`absolute inset-0 w-full h-full object-contain object-center transition-transform duration-1000 group-hover:scale-105 ${
+            isHovered ? 'scale-105 blur-[1px] opacity-30' : 'scale-100 opacity-90'
           }`}
         />
       ) : (
         <img
           src={displayThumbnail}
           alt={work.title}
-          className={`absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 group-hover:scale-105 ${
-            isHovered ? 'scale-110 blur-[1px] opacity-30' : 'scale-100 opacity-80'
+          className={`absolute inset-0 w-full h-full object-contain object-center transition-transform duration-1000 group-hover:scale-105 ${
+            isHovered ? 'scale-105 blur-[1px] opacity-30' : 'scale-100 opacity-90'
           }`}
           loading="lazy"
         />
@@ -116,7 +116,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
           {work.media_source === 'youtube' && (
             <iframe
               src={`${work.media_url}${work.media_url.includes('?') ? '&' : '?'}autoplay=1&mute=1&controls=0&loop=1&playlist=${work.media_url.split('/').pop()?.split('?')[0] ?? ''}&background=1`}
-              className="w-full h-full scale-[1.35] object-cover pointer-events-none"
+              className="w-full h-full object-contain pointer-events-none"
               frameBorder="0"
               allow="autoplay; encrypted-media"
             />
@@ -124,7 +124,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
           {work.media_source === 'vimeo' && (
             <iframe
               src={`${work.media_url}${work.media_url.includes('?') ? '&' : '?'}autoplay=1&muted=1&controls=0&loop=1&background=1`}
-              className="w-full h-full scale-[1.35] object-cover pointer-events-none"
+              className="w-full h-full object-contain pointer-events-none"
               frameBorder="0"
               allow="autoplay; encrypted-media"
             />
@@ -132,7 +132,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
           {work.media_source === 'instagram' && (
             <iframe
               src={work.media_url}
-              className="w-full h-full scale-[1.1] object-cover pointer-events-none"
+              className="w-full h-full object-contain pointer-events-none"
               frameBorder="0"
               scrolling="no"
               allowTransparency
@@ -145,7 +145,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
               loop
               muted
               playsInline
-            className="w-full h-full object-cover object-center"
+            className="w-full h-full object-contain object-center"
             />
           )}
         </div>
