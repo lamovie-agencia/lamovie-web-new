@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Play, TrendingUp, X } from 'lucide-react';
 import { ASSETS } from '../data/assets';
 
-const resolveReelPoster = (reel: { title?: string; thumbnail_url?: string; image_url?: string; category?: string }) => {
+const resolveReelPoster = (reel: { title?: string; thumbnail_url?: string; image_url?: string; category?: string; media_url?: string; video_url?: string }) => {
   if (reel.thumbnail_url || reel.image_url) return reel.thumbnail_url || reel.image_url || '';
+  if (reel.media_url || reel.video_url) return '';
 
   const title = String(reel.title || '').toLowerCase();
   const fallback = ASSETS.portfolio.reels.find((item) =>
@@ -103,8 +104,8 @@ export default function ReelsShowcase() {
           .filter((item) => item.category === 'reels' || item.format_type === 'vertical')
           .map((item) => ({
             ...item,
-            thumbnail_url: item.thumbnail_url || item.image_url || resolveReelPoster(item),
-            image_url: item.image_url || item.thumbnail_url || resolveReelPoster(item)
+            thumbnail_url: item.thumbnail_url || item.image_url || '',
+            image_url: item.image_url || item.thumbnail_url || ''
           }));
         if (reels.length > 0) setItems(reels);
       })

@@ -37,6 +37,62 @@ const VISUAL_PRESETS = [
   "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80"
 ];
 
+const inferFormatFromDimensions = (width: number, height: number): PortfolioItem['format_type'] => {
+  if (!width || !height) return 'horizontal';
+  const ratio = width / height;
+  if (ratio < 0.82) return 'vertical';
+  if (ratio <= 1.18) return 'square';
+  if (ratio >= 1.65) return 'featured';
+  return 'horizontal';
+};
+
+const inferCategoryFromMedia = (format: PortfolioItem['format_type'], mode: 'video' | 'image' | 'carousel'): PortfolioItem['category'] => {
+  if (format === 'vertical' && mode === 'video') return 'reels';
+  if (mode === 'image' || mode === 'carousel') return 'branding';
+  return 'cinema';
+};
+
+const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
+  const objectUrl = URL.createObjectURL(file);
+
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('No se pudieron leer las dimensiones de la imagen'));
+    };
+    image.src = objectUrl;
+  });
+};
+
+const getVideoDimensions = (file: File): Promise<{ width: number; height: number; duration: number }> => {
+  const objectUrl = URL.createObjectURL(file);
+
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.muted = true;
+    video.playsInline = true;
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve({
+        width: video.videoWidth,
+        height: video.videoHeight,
+        duration: Number.isFinite(video.duration) ? video.duration : 0
+      });
+    };
+    video.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('No se pudieron leer las dimensiones del video'));
+    };
+    video.src = objectUrl;
+  });
+};
+
 const resolvePortfolioThumbnail = (item: Pick<PortfolioItem, 'title' | 'category' | 'thumbnail_url' | 'image_url' | 'gallery_images'>) => {
   if (item.thumbnail_url || item.image_url) return item.thumbnail_url || item.image_url || VISUAL_PRESETS[0];
   if (Array.isArray(item.gallery_images) && item.gallery_images[0]) return item.gallery_images[0];
@@ -276,7 +332,7 @@ export function PortfolioModule() {
       category: 'cinema',
       media_source: 'youtube',
       media_url: '',
-      thumbnail_url: VISUAL_PRESETS[0],
+      thumbnail_url: '',
       views: '',
       likes: '',
       display_order: '0'
@@ -327,6 +383,20 @@ export function PortfolioModule() {
       setStatusMsg({ text: 'No se pudo capturar ese fotograma del video.', error: true });
     }
   }, [coverCaptureTime, videoFile]);
+
+  const applyDetectedMediaShape = useCallback((width: number, height: number, mode: 'video' | 'image' | 'carousel') => {
+    const format = inferFormatFromDimensions(width, height);
+    const category = inferCategoryFromMedia(format, mode);
+    setFormState(prev => ({
+      ...prev,
+      format_type: format,
+      category
+    }));
+    setStatusMsg({
+      text: `Formato detectado automaticamente: ${format}. Categoria ajustada a ${category}.`,
+      error: false
+    });
+  }, []);
 
   // Safe delete handler
   const handleDelete = async (id: number) => {
@@ -398,7 +468,7 @@ export function PortfolioModule() {
         payload.thumbnail_url = formState.thumbnail_url || currentItem?.thumbnail_url || currentItem?.image_url || '';
       }
 
-      if (!payload.thumbnail_url) {
+      if (!payload.thumbnail_url && contentMode !== 'video') {
         payload.thumbnail_url = resolvePortfolioThumbnail({
           title: payload.title,
           category: payload.category,
@@ -975,6 +1045,16 @@ export function PortfolioModule() {
                                  }
                                  setVideoFile(file);
                                  setCoverFile(null);
+                                 if (file) {
+                                   getVideoDimensions(file)
+                                     .then(({ width, height }) => applyDetectedMediaShape(width, height, 'video'))
+                                     .catch(() => setStatusMsg({ text: 'Video cargado. No se pudo detectar el formato automaticamente.', error: true }));
+                                   generateAutoThumbnail(file)
+                                     .then((frame) => {
+                                       if (frame) setCoverFile(frame);
+                                     })
+                                     .catch(() => undefined);
+                                 }
                                }}
                              />
                            </label>
@@ -1069,6 +1149,11 @@ export function PortfolioModule() {
                                  return;
                                }
                                setCoverFile(file);
+                               if (file) {
+                                 getImageDimensions(file)
+                                   .then(({ width, height }) => applyDetectedMediaShape(width, height, 'image'))
+                                   .catch(() => setStatusMsg({ text: 'Imagen cargada. No se pudo detectar el formato automaticamente.', error: true }));
+                               }
                              }}
                            />
                          </label>
@@ -1105,6 +1190,11 @@ export function PortfolioModule() {
                                  return;
                                }
                                setCarouselFiles(files);
+                               if (files[0]) {
+                                 getImageDimensions(files[0])
+                                   .then(({ width, height }) => applyDetectedMediaShape(width, height, 'carousel'))
+                                   .catch(() => setStatusMsg({ text: 'Carrusel cargado. No se pudo detectar el formato automaticamente.', error: true }));
+                               }
                              }}
                            />
                          </label>

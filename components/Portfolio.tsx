@@ -58,6 +58,8 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
   const displayThumbnail = resolvePortfolioThumbnail(work);
   const displayCategory = work.category ?? "cinema";
   const displayFormat = work.format_type ?? "horizontal";
+  const hasExplicitPoster = Boolean(work.thumbnail_url || work.image_url || work.gallery_images?.[0]);
+  const canUseVideoFrame = !hasExplicitPoster && Boolean(work.media_url) && (work.media_source === 'native' || !work.media_source);
 
   // Dynamic layout grid spacing configuration
   const gridClasses = useMemo(() => {
@@ -87,14 +89,26 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
       className={`group relative overflow-hidden rounded-[24px] cursor-pointer bg-[#0a0808] border border-white/5 hover:border-movie-red/40 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(176,35,46,0.15)] flex flex-col justify-end ${gridClasses}`}
     >
       {/* Background Image backdrop (lazy image loads) */}
-      <img 
-        src={displayThumbnail} 
-        alt={work.title}
-        className={`absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 group-hover:scale-105 ${
-          isHovered ? 'scale-110 blur-[1px] opacity-30' : 'scale-100 opacity-80'
-        }`}
-        loading="lazy"
-      />
+      {canUseVideoFrame ? (
+        <video
+          src={work.media_url}
+          muted
+          playsInline
+          preload="metadata"
+          className={`absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 group-hover:scale-105 ${
+            isHovered ? 'scale-110 blur-[1px] opacity-30' : 'scale-100 opacity-80'
+          }`}
+        />
+      ) : (
+        <img
+          src={displayThumbnail}
+          alt={work.title}
+          className={`absolute inset-0 w-full h-full object-cover object-center transition-transform duration-1000 group-hover:scale-105 ${
+            isHovered ? 'scale-110 blur-[1px] opacity-30' : 'scale-100 opacity-80'
+          }`}
+          loading="lazy"
+        />
+      )}
       
       {/* Video Hover auto-playback preview */}
       {isHovered && work.media_url && (
@@ -190,13 +204,7 @@ const Portfolio: React.FC = () => {
               category: item.category || 'cinema',
               media_source: item.media_source || 'native',
               media_url: item.media_url || item.video_url || '',
-              thumbnail_url: item.thumbnail_url || item.image_url || resolvePortfolioThumbnail({
-                title: item.title,
-                category: item.category,
-                thumbnail_url: item.thumbnail_url,
-                image_url: item.image_url,
-                gallery_images: Array.isArray(item.gallery_images) ? item.gallery_images : []
-              }),
+              thumbnail_url: item.thumbnail_url || item.image_url || '',
               gallery_images: Array.isArray(item.gallery_images) ? item.gallery_images : []
             }));
             setDbItems(mappedDb);
