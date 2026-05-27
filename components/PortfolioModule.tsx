@@ -140,7 +140,12 @@ const buildAiTitle = ({
   return `${categoryLabel} • ${modeLabel} • ${formatLabel} • ${focus}`;
 };
 
-async function captureVideoFrame(file: File, seconds = 0.5): Promise<File | null> {
+const getAutoCaptureTime = (duration: number) => {
+  if (!Number.isFinite(duration) || duration <= 0) return 0.6;
+  return Math.min(Math.max(duration * 0.12, 0.6), Math.max(duration - 0.15, 0));
+};
+
+async function captureVideoFrame(file: File, seconds?: number): Promise<File | null> {
   const objectUrl = URL.createObjectURL(file);
 
   try {
@@ -156,9 +161,13 @@ async function captureVideoFrame(file: File, seconds = 0.5): Promise<File | null
     });
 
     const duration = Number.isFinite(video.duration) ? video.duration : 0;
-    video.currentTime = Math.min(Math.max(seconds, 0), Math.max(duration - 0.1, 0));
+    const captureAt = seconds ?? getAutoCaptureTime(duration);
+    video.currentTime = Math.min(Math.max(captureAt, 0), Math.max(duration - 0.15, 0));
     await new Promise<void>((resolve, reject) => {
       video.onseeked = () => resolve();
+      video.onloadeddata = () => {
+        if (video.currentTime === 0) resolve();
+      };
       video.onerror = () => reject(new Error('No se pudo capturar el frame del reel'));
     });
 
@@ -180,7 +189,7 @@ async function captureVideoFrame(file: File, seconds = 0.5): Promise<File | null
   }
 }
 
-const generateAutoThumbnail = (file: File) => captureVideoFrame(file, 0.5);
+const generateAutoThumbnail = (file: File) => captureVideoFrame(file);
 
 // Smart Media Preview with fallbacks
 const SmartMediaPreview = React.memo(({ item }: { item: PortfolioItem }) => {
@@ -1095,9 +1104,11 @@ export function PortfolioModule() {
                                        let detectedCategory: PortfolioItem['category'] | '' = '';
 
                                        if (dimensionsResult.status === 'fulfilled') {
-                                         const { width, height } = dimensionsResult.value;
+                                         const { width, height, duration } = dimensionsResult.value;
                                          detectedFormat = inferFormatFromDimensions(width, height);
                                          detectedCategory = inferCategoryFromMedia(detectedFormat, 'video');
+                                         setCoverCaptureTime(getAutoCaptureTime(duration));
+                                         setVideoDuration(duration);
                                          setFormState(prev => ({
                                            ...prev,
                                            format_type: detectedFormat as PortfolioItem['format_type'],

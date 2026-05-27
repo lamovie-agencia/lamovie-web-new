@@ -68,16 +68,18 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
   const gridClasses = useMemo(() => {
     switch (displayFormat) {
       case 'vertical':
-        return 'md:row-span-2 md:col-span-1 min-h-[460px] md:min-h-0';
+        return 'min-h-[430px] sm:min-h-[520px] md:row-span-2 md:col-span-1 md:min-h-0';
       case 'featured':
-        return 'md:col-span-2 md:row-span-1 min-h-[280px]';
+        return 'min-h-[230px] sm:min-h-[280px] md:col-span-2 md:row-span-1';
       case 'square':
-        return 'col-span-1 row-span-1 min-h-[280px]';
+        return 'col-span-1 row-span-1 min-h-[300px] sm:min-h-[280px]';
       case 'horizontal':
       default:
-        return 'col-span-1 row-span-1 min-h-[280px]';
+        return 'col-span-1 row-span-1 min-h-[220px] sm:min-h-[280px]';
     }
   }, [displayFormat]);
+
+  const mediaFitClass = displayFormat === 'horizontal' || displayFormat === 'featured' ? 'object-cover' : 'object-contain';
 
   return (
     <motion.div 
@@ -89,7 +91,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-[24px] cursor-pointer bg-[#0a0808] border border-white/5 hover:border-movie-red/40 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(176,35,46,0.15)] flex flex-col justify-end ${gridClasses}`}
+      className={`group relative overflow-hidden rounded-2xl sm:rounded-[24px] cursor-pointer bg-[#0a0808] border border-white/5 hover:border-movie-red/40 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(176,35,46,0.15)] flex flex-col justify-end ${gridClasses}`}
     >
       {/* Background Image backdrop (lazy image loads) */}
       {canUseVideoFrame ? (
@@ -98,7 +100,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
           muted
           playsInline
           preload="metadata"
-          className={`absolute inset-0 w-full h-full object-contain object-center transition-transform duration-1000 group-hover:scale-105 ${
+          className={`absolute inset-0 w-full h-full ${mediaFitClass} object-center transition-transform duration-1000 group-hover:scale-105 ${
             isHovered ? 'scale-105 blur-[1px] opacity-30' : 'scale-100 opacity-90'
           }`}
         />
@@ -106,7 +108,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
         <img
           src={displayThumbnail}
           alt={work.title}
-          className={`absolute inset-0 w-full h-full object-contain object-center transition-transform duration-1000 group-hover:scale-105 ${
+          className={`absolute inset-0 w-full h-full ${mediaFitClass} object-center transition-transform duration-1000 group-hover:scale-105 ${
             isHovered ? 'scale-105 blur-[1px] opacity-30' : 'scale-100 opacity-90'
           }`}
           loading="lazy"
@@ -149,7 +151,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
               loop
               muted
               playsInline
-            className="w-full h-full object-contain object-center"
+            className={`w-full h-full ${mediaFitClass} object-center`}
             />
           )}
         </div>
@@ -159,7 +161,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-80 group-hover:opacity-95 transition-opacity duration-300 z-20"></div>
       
       {/* Visual content descriptor */}
-      <div className="p-6 md:p-8 flex flex-col justify-end relative z-30 transition-transform duration-300 translate-y-2 group-hover:translate-y-0">
+      <div className="p-5 sm:p-6 md:p-8 flex flex-col justify-end relative z-30 transition-transform duration-300 translate-y-2 group-hover:translate-y-0">
         <div className="flex gap-2 items-center mb-2">
           <span className="text-[8px] font-black text-movie-red bg-movie-red/10 border border-movie-red/20 uppercase tracking-[0.3em] px-2.5 py-1 rounded-md">
             {displayCategory}
@@ -168,7 +170,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
             {displayFormat}
           </span>
         </div>
-        <h4 className="text-white text-xl md:text-2xl font-heading font-black truncate uppercase italic tracking-tighter leading-none mb-1">
+        <h4 className="text-white text-lg sm:text-xl md:text-2xl font-heading font-black uppercase italic tracking-tighter leading-none mb-1 line-clamp-2">
           {work.title ?? "Proyecto sin título"}
         </h4>
         <p className="text-white/40 text-[11px] line-clamp-2 uppercase tracking-wide">
@@ -275,27 +277,27 @@ const Portfolio: React.FC = () => {
   };
 
   return (
-    <section id="portfolio" className="py-32 bg-movie-black relative min-h-screen">
+    <section id="portfolio" className="py-24 sm:py-32 bg-movie-black relative min-h-screen">
       {/* Cinematic Glowing Backgrounds */}
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-movie-red/5 blur-[150px] rounded-full pointer-events-none"></div>
       <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-movie-red/5 blur-[150px] rounded-full pointer-events-none"></div>
 
-      <div className="container mx-auto px-6 relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 relative z-10">
         
         {/* Header Title Section */}
-        <div className="max-w-4xl mx-auto text-center mb-20 animate-fade-in">
-           <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full border border-movie-red/30 bg-movie-red/10 text-movie-red text-[10px] font-bold uppercase tracking-[0.3em] mb-6">
+        <div className="max-w-4xl mx-auto text-center mb-12 sm:mb-20 animate-fade-in">
+           <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full border border-movie-red/30 bg-movie-red/10 text-movie-red text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.18em] sm:tracking-[0.3em] mb-6">
              <Zap size={12} className="fill-movie-red animate-pulse" /> Showcase & Portafolio Mixto 
            </div>
-           <h1 className="text-6xl md:text-8xl font-heading font-black text-white mb-8 tracking-tighter uppercase italic">
+           <h1 className="text-5xl sm:text-6xl md:text-8xl font-heading font-black text-white mb-6 sm:mb-8 tracking-tighter uppercase italic">
              SHOWCASE
            </h1>
-           <p className="text-movie-silver text-lg md:text-xl font-light max-w-2xl mx-auto mb-12">
+           <p className="text-movie-silver text-base sm:text-lg md:text-xl font-light max-w-2xl mx-auto mb-8 sm:mb-12">
              Bento Grid interactivo de producciones cinematográficas y soluciones web de alto impacto impulsadas por LA MOVIE.
            </p>
            
            {/* Modern categories navigation row */}
-           <div className="flex flex-wrap justify-center gap-3 bg-white/5 p-2 rounded-2xl border border-white/10 w-fit mx-auto backdrop-blur-xl">
+           <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-2 sm:gap-3 bg-white/5 p-2 rounded-2xl border border-white/10 w-full sm:w-fit mx-auto backdrop-blur-xl">
              {filterCategories.map(cat => (
                <button
                  key={cat.id}
@@ -303,7 +305,7 @@ const Portfolio: React.FC = () => {
                    setActiveFilter(cat.id);
                    setVisibleItems(8);
                  }}
-                 className={`flex items-center gap-2 px-6 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-500 hover:scale-105 ${
+                 className={`flex items-center justify-center gap-2 px-3 sm:px-6 py-3 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-500 hover:scale-105 ${
                    activeFilter === cat.id 
                      ? 'bg-white text-black shadow-[0_10px_25px_rgba(255,255,255,0.15)] scale-105' 
                      : 'bg-transparent text-white/50 hover:bg-white/10 hover:text-white'
@@ -319,7 +321,7 @@ const Portfolio: React.FC = () => {
         <div className="animate-fade-in-up">
           <motion.div 
             layout 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-[280px] grid-flow-dense mb-16"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:auto-rows-[280px] grid-flow-dense mb-12 sm:mb-16"
           >
             <AnimatePresence>
               {filteredItems.slice(0, visibleItems).map((work) => (
@@ -336,9 +338,9 @@ const Portfolio: React.FC = () => {
             <div className="text-center mb-16">
                <button 
                  onClick={handleLoadMore}
-                 className="group relative px-10 py-5 bg-white text-black font-black uppercase tracking-[0.2em] text-[10px] hover:scale-105 transition-all skew-x-[-10deg] shadow-lg hover:shadow-white/15"
+                 className="group relative px-7 sm:px-10 py-4 sm:py-5 bg-white text-black font-black uppercase tracking-[0.14em] sm:tracking-[0.2em] text-[9px] sm:text-[10px] hover:scale-105 transition-all sm:skew-x-[-10deg] shadow-lg hover:shadow-white/15"
                >
-                 <span className="flex items-center gap-3 skew-x-[10deg]">
+                 <span className="flex items-center justify-center gap-3 sm:skew-x-[10deg]">
                    Explorar Más Proyectos <Plus size={16} className="group-hover:rotate-90 transition-transform" />
                  </span>
                </button>
@@ -347,14 +349,14 @@ const Portfolio: React.FC = () => {
         </div>
 
         {/* CTA Banner */}
-        <div className="mt-32 text-center bg-gradient-to-b from-white/5 to-transparent p-16 rounded-[40px] border border-white/5">
+        <div className="mt-20 sm:mt-32 text-center bg-gradient-to-b from-white/5 to-transparent p-6 sm:p-10 lg:p-16 rounded-2xl sm:rounded-[32px] border border-white/5">
           <h3 className="text-4xl md:text-5xl font-heading font-black text-white mb-6 uppercase italic tracking-tighter">¿Tienes una gran visión entre manos?</h3>
           <p className="text-movie-silver text-base mb-10 max-w-xl mx-auto">Conectemos tu idea con producción audiovisual cinematográfica o diseño interactivo premium.</p>
           <a 
             href="https://wa.me/573017355046?text=Hola%20LA%20MOVIE,%20vi%20su%20portafolio%20y%20quiero%20empezar%20un%20proyecto."
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-4 bg-movie-red hover:bg-red-700 text-white px-12 py-6 rounded-2xl font-black uppercase tracking-[0.2em] text-xs transition-all hover:scale-105 shadow-[0_20px_50px_rgba(176,35,46,0.3)]"
+            className="inline-flex items-center justify-center gap-3 sm:gap-4 bg-movie-red hover:bg-red-700 text-white px-6 sm:px-12 py-5 sm:py-6 rounded-xl sm:rounded-2xl font-black uppercase tracking-[0.14em] sm:tracking-[0.2em] text-[10px] sm:text-xs transition-all hover:scale-105 shadow-[0_20px_50px_rgba(176,35,46,0.3)]"
           >
             Iniciar Mi Proyecto <MessageCircle size={20} />
           </a>
@@ -380,7 +382,7 @@ const Portfolio: React.FC = () => {
               initial={{ opacity: 0, scale: 0.9, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              className="relative max-w-7xl w-full h-[90vh] flex flex-col lg:grid lg:grid-cols-12 gap-8 items-center z-10 p-6"
+              className="relative max-w-7xl w-full max-h-[94vh] overflow-y-auto flex flex-col lg:grid lg:grid-cols-12 gap-4 sm:gap-8 items-center z-10 p-4 sm:p-6"
             >
               {/* Back button */}
               <button 
@@ -391,7 +393,7 @@ const Portfolio: React.FC = () => {
               </button>
               
               {/* Video Player Display Screen */}
-              <div className="w-full lg:col-span-8 h-[50vh] lg:h-full rounded-[32px] overflow-hidden flex items-center justify-center bg-black border border-white/10 relative shadow-2xl">
+              <div className="w-full lg:col-span-8 h-[52vh] sm:h-[60vh] lg:h-[86vh] rounded-2xl sm:rounded-[32px] overflow-hidden flex items-center justify-center bg-black border border-white/10 relative shadow-2xl">
                 {selectedWork.gallery_images && selectedWork.gallery_images.length > 0 ? (
                   <div className="relative w-full h-full">
                     <img
