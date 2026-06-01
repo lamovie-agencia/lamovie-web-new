@@ -54,3 +54,17 @@ span {
     overflow-wrap: anywhere;
   }
 }
+
+@keyframes scroll-film {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.333%);
+  }
+}
+
+.animate-scroll-film {
+  animation: scroll-film 30s linear infinite;
+  will-change: transform;
+}
