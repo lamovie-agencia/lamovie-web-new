@@ -100,14 +100,25 @@ export default function ReelsShowcase() {
       .then((res) => res.json())
       .then((data) => {
         if (!Array.isArray(data)) return;
+        // Filtrar por categoría 'reels' o formato 'vertical', priorizando items con media_url/video_url
         const reels = data
-          .filter((item) => item.category === 'reels' || item.format_type === 'vertical')
+          .filter((item) => {
+            const isReel = (item.category || '').toLowerCase() === 'reels' || 
+                          (item.format_type || '').toLowerCase() === 'vertical';
+            const hasMedia = !!(item.media_url || item.video_url);
+            return isReel && hasMedia;
+          })
           .map((item) => ({
             ...item,
             thumbnail_url: item.thumbnail_url || item.image_url || '',
-            image_url: item.image_url || item.thumbnail_url || ''
+            image_url: item.image_url || item.thumbnail_url || '',
+            views: item.views || 0,
+            likes: item.likes || 0
           }));
-        if (reels.length > 0) setItems(reels);
+        // Solo mostrar portfolio reels si existen, sino fallback
+        if (reels.length > 0) {
+          setItems(reels);
+        }
       })
       .catch(() => setItems(FALLBACK_REELS));
   }, []);
