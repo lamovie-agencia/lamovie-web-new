@@ -68,14 +68,14 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
   const gridClasses = useMemo(() => {
     switch (displayFormat) {
       case 'vertical':
-        return 'min-h-[430px] sm:min-h-[520px] md:row-span-2 md:col-span-1 md:min-h-0';
+        return 'min-h-[280px] xs:min-h-[360px] sm:min-h-[420px] md:row-span-2 md:col-span-1 md:min-h-0';
       case 'featured':
-        return 'min-h-[230px] sm:min-h-[280px] md:col-span-2 md:row-span-1';
+        return 'min-h-[180px] xs:min-h-[220px] sm:min-h-[260px] md:col-span-2 md:row-span-1';
       case 'square':
-        return 'col-span-1 row-span-1 min-h-[300px] sm:min-h-[280px]';
+        return 'col-span-1 row-span-1 min-h-[200px] xs:min-h-[240px] sm:min-h-[260px]';
       case 'horizontal':
       default:
-        return 'col-span-1 row-span-1 min-h-[220px] sm:min-h-[280px]';
+        return 'col-span-1 row-span-1 min-h-[160px] xs:min-h-[200px] sm:min-h-[260px]';
     }
   }, [displayFormat]);
 

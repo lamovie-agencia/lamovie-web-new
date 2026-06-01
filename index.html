@@ -351,10 +351,18 @@
               entry.target.classList.add('is-visible');
             }
           });
-        }, { threshold: 0.1 });
-        setTimeout(() => {
-          document.querySelectorAll('.reveal-on-scroll').forEach(el => observer.observe(el));
-        }, 1000);
+                tailwind.config = {
+                  theme: {
+                    screens: {
+                      'xs': '360px',
+                      'sm': '640px',
+                      'md': '768px',
+                      'lg': '1024px',
+                      'xl': '1280px',
+                      '2xl': '1536px',
+                    },
+                    extend: {
+                      colors: {
       });
     </script>
     <script type="module" src="/index.tsx"></script>
