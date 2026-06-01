@@ -92,21 +92,27 @@ function ReelCard({ reel, onOpen }: { reel: Reel; onOpen: (reel: Reel) => void }
 }
 
 export default function ReelsShowcase() {
-  const [items, setItems] = useState<Reel[]>(FALLBACK_REELS);
+  const [items, setItems] = useState<Reel[]>([]);
   const [selected, setSelected] = useState<Reel | null>(null);
 
   useEffect(() => {
     fetch('/api/portfolio')
       .then((res) => res.json())
       .then((data) => {
-        if (!Array.isArray(data)) return;
-        // Filtrar por categoría 'reels' o formato 'vertical', priorizando items con media_url/video_url
+        console.log('ReelsShowcase: Portfolio data received:', data);
+        if (!Array.isArray(data)) {
+          console.warn('ReelsShowcase: Portfolio data is not an array');
+          return;
+        }
+        
+        // Filtro flexible: cualquier item que sea reel O vertical O tenga video
+        // Priorizamos items con media_url/video_url
         const reels = data
           .filter((item) => {
-            const isReel = (item.category || '').toLowerCase() === 'reels' || 
-                          (item.format_type || '').toLowerCase() === 'vertical';
             const hasMedia = !!(item.media_url || item.video_url);
-            return isReel && hasMedia;
+            const isReelCategory = (item.category || '').toLowerCase().includes('reel');
+            const isVerticalFormat = (item.format_type || '').toLowerCase() === 'vertical';
+            return hasMedia && (isReelCategory || isVerticalFormat);
           })
           .map((item) => ({
             ...item,
@@ -115,12 +121,33 @@ export default function ReelsShowcase() {
             views: item.views || 0,
             likes: item.likes || 0
           }));
-        // Solo mostrar portfolio reels si existen, sino fallback
+        
+        console.log('ReelsShowcase: Filtered reels:', reels);
+        
+        // SIEMPRE usar portfolio reels, no fallback
         if (reels.length > 0) {
           setItems(reels);
+        } else {
+          console.warn('ReelsShowcase: No reels found in portfolio with reel/vertical category and media');
+          // Si no hay reels en portafolio, intentar cargar TODOS los items como fallback
+          const allItems = data
+            .filter((item) => item.media_url || item.video_url)
+            .map((item) => ({
+              ...item,
+              thumbnail_url: item.thumbnail_url || item.image_url || '',
+              image_url: item.image_url || item.thumbnail_url || '',
+              views: item.views || 0,
+              likes: item.likes || 0
+            }));
+          setItems(allItems);
+          console.log('ReelsShowcase: Using all portfolio items as fallback:', allItems);
         }
       })
-      .catch(() => setItems(FALLBACK_REELS));
+      .catch((err) => {
+        console.error('ReelsShowcase: Failed to fetch portfolio:', err);
+        // NO usar FALLBACK_REELS en caso de error, solo mostrar vacío
+        setItems([]);
+      });
   }, []);
 
   const visible = useMemo(() => items.filter((item) => item.media_url || item.video_url), [items]);
