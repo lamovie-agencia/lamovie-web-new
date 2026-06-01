@@ -9,6 +9,7 @@ import Pricing from './Pricing';
 import SEO from './SEO';
 import ClientLogos from './ClientLogos';
 import ReelsShowcase from './ReelsShowcase';
+import ReelsFeed from './ReelsFeed';
 
 const REELS = [
   "https://videos.pexels.com/video-files/5896379/5896379-sd_540_960_24fps.mp4",
@@ -207,7 +208,7 @@ const ViralHome: React.FC<ViralHomeProps> = ({ lang, t, whatsappNumber = '573017
 
       {/* 4. TRAYECTORIA / ESTADÍSTICAS */}
       <ClientLogos />
-      <ReelsShowcase />
+      <ReelsFeed />
 
       <section className="py-20 sm:py-32 container mx-auto px-4 sm:px-6 relative">
         <div className="grid md:grid-cols-2 gap-10 lg:gap-16 items-center">

@@ -554,7 +554,66 @@ const AdminDashboardInner: React.FC = () => {
     e.preventDefault();
     if (!token) return;
     setIsSubmitting(true);
+    // Helper: capture first video frame as data URL (client-side). May fail due to CORS.
+    const captureFirstFrame = async (videoUrl: string) => {
+      return new Promise<string | null>((resolve) => {
+        try {
+          const video = document.createElement('video');
+          video.crossOrigin = 'anonymous';
+          video.src = videoUrl;
+          video.preload = 'metadata';
+          video.muted = true;
+
+          const cleanup = () => {
+            video.remove();
+          };
+
+          const onLoaded = () => {
+            try {
+              video.currentTime = 0;
+            } catch (e) {}
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth || 1280;
+            canvas.height = video.videoHeight || 720;
+            const ctx = canvas.getContext('2d');
+            try {
+              ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const data = canvas.toDataURL('image/jpeg', 0.8);
+              cleanup();
+              resolve(data);
+            } catch (err) {
+              cleanup();
+              resolve(null);
+            }
+          };
+
+          const onError = () => {
+            cleanup();
+            resolve(null);
+          };
+
+          video.addEventListener('loadeddata', onLoaded, { once: true });
+          video.addEventListener('error', onError, { once: true });
+        } catch (err) {
+          resolve(null);
+        }
+      });
+    };
+
     try {
+      // If there is a native video URL but no image/thumbnail, attempt to capture a frame
+      if (!portfolioForm.image_url && portfolioForm.video_url) {
+        try {
+          const captured = await captureFirstFrame(portfolioForm.video_url);
+          if (captured) {
+            portfolioForm.image_url = captured;
+            portfolioForm.thumbnail_url = captured as any;
+          }
+        } catch (e) {
+          // ignore capture failures (CORS, remote hosts)
+        }
+      }
+
       if (editingId) {
         await adminService.updatePortfolio(editingId, portfolioForm, token);
         setEditingId(null);
