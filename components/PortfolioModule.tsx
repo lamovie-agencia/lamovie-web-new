@@ -216,13 +216,13 @@ const SmartMediaPreview = React.memo(({ item }: { item: PortfolioItem }) => {
           muted
           playsInline
           preload="metadata"
-          className={`w-full h-full object-contain transition-all duration-700 ${isHovered ? 'scale-105 blur-[2px] opacity-40' : 'scale-100 opacity-90'}`}
+          className={`w-full h-full object-cover transition-all duration-700 ${isHovered ? 'scale-105 blur-[2px] opacity-40' : 'scale-100 opacity-90'}`}
         />
       ) : (
         <img
           src={displayThumbnail}
           alt={item.title}
-          className={`w-full h-full object-contain transition-all duration-700 ${isHovered ? 'scale-105 blur-[2px] opacity-40' : 'scale-100 opacity-90'}`}
+          className={`w-full h-full object-cover transition-all duration-700 ${isHovered ? 'scale-105 blur-[2px] opacity-40' : 'scale-100 opacity-90'}`}
           loading="lazy"
         />
       )}
@@ -710,7 +710,7 @@ export function PortfolioModule() {
                             <div key={item.id} className="flex items-center gap-4 bg-black/40 p-3 rounded-2xl border border-white/5 hover:bg-white/5 transition-all">
                                <span className="text-xl font-black text-white/20 italic w-4">{idx + 1}</span>
                                <div className="w-16 h-12 rounded-lg overflow-hidden shrink-0 border border-white/5">
-                                 <img src={thumb} alt="thumb" className="w-full h-full object-contain bg-black" />
+                                 <img src={thumb} alt="thumb" className="w-full h-full object-cover bg-black" />
                                </div>
                                <div className="flex-1 min-w-0">
                                   <h5 className="font-bold text-xs text-white truncate">{item.title ?? "Sin título"}</h5>
@@ -1230,9 +1230,9 @@ export function PortfolioModule() {
                                  <span className="block text-[9px] font-black uppercase tracking-widest text-white/40">Portada auto</span>
                                  <div className={`flex ${formState.format_type === 'vertical' ? 'aspect-[9/16]' : formState.format_type === 'square' ? 'aspect-square' : 'aspect-video'} items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/5`}>
                                    {coverPreviewUrl ? (
-                                     <img src={coverPreviewUrl} alt="Portada capturada" className="h-full w-full object-contain" />
+                                     <img src={coverPreviewUrl} alt="Portada capturada" className="h-full w-full object-cover" />
                                    ) : formState.thumbnail_url ? (
-                                     <img src={formState.thumbnail_url} alt="Portada configurada" className="h-full w-full object-contain" />
+                                     <img src={formState.thumbnail_url} alt="Portada configurada" className="h-full w-full object-cover" />
                                    ) : (
                                      <span className="px-4 text-center text-[9px] font-bold uppercase tracking-widest text-white/30">
                                        Automatica si no eliges frame
@@ -1288,7 +1288,7 @@ export function PortfolioModule() {
                              <img
                                src={coverPreviewUrl || formState.thumbnail_url}
                                alt="Vista previa de imagen"
-                               className="max-h-80 w-full object-contain"
+                               className="max-h-80 w-full object-cover"
                              />
                            </div>
                          )}
@@ -1338,7 +1338,7 @@ export function PortfolioModule() {
                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                              {carouselFiles.map((file, index) => (
                                <div key={`${file.name}-${index}`} className="relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/40">
-                                 <img src={URL.createObjectURL(file)} alt={`Preview ${index + 1}`} className="h-full w-full object-contain" />
+                                 <img src={URL.createObjectURL(file)} alt={`Preview ${index + 1}`} className="h-full w-full object-cover" />
                                </div>
                              ))}
                            </div>
@@ -1358,7 +1358,7 @@ export function PortfolioModule() {
                                   formState.thumbnail_url === preset ? 'border-movie-red scale-105' : 'border-white/10 opacity-70 hover:opacity-100'
                                 }`}
                               >
-                                 <img src={preset} alt="preset" className="w-full h-full object-contain bg-black" />
+                                 <img src={preset} alt="preset" className="w-full h-full object-cover bg-black" />
                               </button>
                            ))}
                         </div>

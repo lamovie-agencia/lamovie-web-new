@@ -38,13 +38,13 @@ export default function ClientLogos() {
             href={brand.website_url || undefined}
             target={brand.website_url ? "_blank" : undefined}
             rel="noopener noreferrer"
-              className="flex-shrink-0 px-6 sm:px-10 md:px-16 flex items-center justify-center grayscale opacity-40 hover:opacity-100 hover:grayscale-0 contrast-125 brightness-0 invert hover:brightness-100 hover:invert-0 transition-all duration-300 hover:shadow-lg"
+            className="flex h-20 w-[180px] flex-shrink-0 items-center justify-center px-5 grayscale opacity-45 contrast-125 brightness-0 invert transition-all duration-300 hover:opacity-100 hover:grayscale-0 hover:brightness-100 hover:invert-0 sm:w-[220px] md:w-[260px]"
             title={brand.name}
           >
             <img
               src={brand.logo_url}
               alt={brand.name}
-              className="h-10 sm:h-12 max-w-[140px] sm:max-w-[180px] md:h-14 md:max-w-[220px] object-contain"
+              className="max-h-12 w-full max-w-[190px] object-contain sm:max-h-14 sm:max-w-[220px]"
               loading="lazy"
               referrerPolicy="no-referrer"
             />

@@ -65,6 +65,6 @@ span {
 }
 
 .animate-scroll-film {
-  animation: scroll-film 30s linear infinite;
+  animation: scroll-film 42s linear infinite;
   will-change: transform;
 }

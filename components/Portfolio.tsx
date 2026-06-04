@@ -68,18 +68,23 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
   const gridClasses = useMemo(() => {
     switch (displayFormat) {
       case 'vertical':
-        return 'min-h-[280px] xs:min-h-[360px] sm:min-h-[420px] md:row-span-2 md:col-span-1 md:min-h-0';
+        return 'min-h-[360px] sm:min-h-[420px] md:row-span-2 md:col-span-1 md:min-h-0';
       case 'featured':
-        return 'min-h-[180px] xs:min-h-[220px] sm:min-h-[260px] md:col-span-2 md:row-span-1';
+        return 'min-h-[220px] sm:min-h-[260px] md:col-span-2 md:row-span-1';
       case 'square':
-        return 'col-span-1 row-span-1 min-h-[200px] xs:min-h-[240px] sm:min-h-[260px]';
+        return 'col-span-1 row-span-1 min-h-[240px] sm:min-h-[260px]';
       case 'horizontal':
       default:
-        return 'col-span-1 row-span-1 min-h-[160px] xs:min-h-[200px] sm:min-h-[260px]';
+        return 'col-span-1 row-span-1 min-h-[200px] sm:min-h-[260px]';
     }
   }, [displayFormat]);
 
-  const mediaFitClass = displayFormat === 'horizontal' || displayFormat === 'featured' ? 'object-cover' : 'object-contain';
+  const mediaFitClass = 'object-cover';
+  const cardShapeClass = displayFormat === 'vertical'
+    ? 'aspect-[9/16] md:aspect-auto'
+    : displayFormat === 'square'
+      ? 'aspect-square md:aspect-auto'
+      : 'aspect-[16/10] md:aspect-auto';
 
   return (
     <motion.div 
@@ -91,7 +96,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-2xl sm:rounded-[24px] cursor-pointer bg-[#0a0808] border border-white/5 hover:border-movie-red/40 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(176,35,46,0.15)] flex flex-col justify-end ${gridClasses}`}
+      className={`group relative overflow-hidden rounded-2xl sm:rounded-[24px] cursor-pointer bg-[#0a0808] border border-white/5 hover:border-movie-red/40 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(176,35,46,0.15)] flex flex-col justify-end ${cardShapeClass} ${gridClasses}`}
     >
       {/* Background Image backdrop (lazy image loads) */}
       {canUseVideoFrame ? (
@@ -255,8 +260,8 @@ const Portfolio: React.FC = () => {
 
   // Combined real-time portfolio timeline
   const combinedItems = useMemo(() => {
-    return dbItems;
-  }, [dbItems]);
+    return dbItems.length > 0 ? dbItems : fallbackWorks;
+  }, [dbItems, fallbackWorks]);
 
   // Filter items flawlessly based on selected tag
   const filteredItems = useMemo(() => {
@@ -321,7 +326,7 @@ const Portfolio: React.FC = () => {
         <div className="animate-fade-in-up">
           <motion.div 
             layout 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:auto-rows-[280px] grid-flow-dense mb-12 sm:mb-16"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:auto-rows-[280px] grid-flow-dense mb-12 sm:mb-16"
           >
             <AnimatePresence>
               {filteredItems.slice(0, visibleItems).map((work) => (
