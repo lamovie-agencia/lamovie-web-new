@@ -120,6 +120,11 @@ export function FinanceModule() {
 
   useEffect(() => {
     fetchFinance();
+    const handleDataUpdate = () => {
+      fetchFinance();
+    };
+    window.addEventListener('laMovieDataUpdated', handleDataUpdate as EventListener);
+    return () => window.removeEventListener('laMovieDataUpdated', handleDataUpdate as EventListener);
   }, [fetchFinance]);
 
   const totals = useMemo(() => {

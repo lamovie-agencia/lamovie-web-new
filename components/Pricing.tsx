@@ -14,6 +14,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { adminService } from '../lib/adminService';
+import { DEFAULT_PRICING_PACKAGES } from '../lib/defaultPackages';
 
 const iconMap: Record<string, { icon: React.ReactNode; tone: string }> = {
   Film: { icon: <Film size={28} />, tone: 'bg-red-500/10 text-red-300' },
@@ -54,81 +55,6 @@ const tabMeta: Record<TabKey, { label: string; headline: string; copy: string; c
   },
 };
 
-const DEFAULT_PLANS = [
-  {
-    id: 'default-social-1',
-    name: 'STARTER REELS',
-    category: 'social',
-    price: '690.000',
-    period: '/ mes',
-    description: 'Contenido vertical listo para publicar, con portadas, copies y calendario base.',
-    features: ['8 reels editados', '8 portadas 9:16', 'Calendario de publicacion', 'Copywriting para captions'],
-    recommended: false,
-    icon: 'Film',
-    page: 'pricing-social',
-  },
-  {
-    id: 'default-social-2',
-    name: 'SOCIAL PRO',
-    category: 'social',
-    price: '1.390.000',
-    period: '/ mes',
-    description: 'Sistema mensual de contenido para sostener presencia, ventas y reconocimiento.',
-    features: ['16 reels editados', '12 piezas graficas', 'Parrilla mensual', 'Reporte de rendimiento'],
-    recommended: true,
-    icon: 'Star',
-    page: 'pricing-social',
-  },
-  {
-    id: 'default-estrategia-1',
-    name: 'TRAFFIC LAUNCH',
-    category: 'estrategia',
-    price: '1.800.000',
-    period: '/ campana',
-    description: 'Campanas de trafico con estructura comercial, piezas creativas y medicion clara.',
-    features: ['Setup de Meta Ads', '3 audiencias iniciales', 'Creativos de prueba', 'Optimizacion semanal'],
-    recommended: true,
-    icon: 'Zap',
-    page: 'pricing-estrategia',
-  },
-  {
-    id: 'default-estrategia-2',
-    name: 'PERFORMANCE SCALE',
-    category: 'estrategia',
-    price: '2.900.000',
-    period: '/ mes',
-    description: 'Escalamiento de pauta, funnel y remarketing para negocios con oferta validada.',
-    features: ['Embudo de conversion', 'Remarketing', 'Dashboard de resultados', 'Iteracion creativa'],
-    recommended: false,
-    icon: 'Crown',
-    page: 'pricing-estrategia',
-  },
-  {
-    id: 'default-web-1',
-    name: 'LANDING PRO',
-    category: 'web',
-    price: '1.600.000',
-    period: 'pago unico',
-    description: 'Landing page rapida, cinematografica y enfocada en conversion por WhatsApp.',
-    features: ['Diseno responsive', 'SEO base', 'Formulario o WhatsApp', 'Integracion analytics'],
-    recommended: false,
-    icon: 'Monitor',
-    page: 'pricing-web',
-  },
-  {
-    id: 'default-web-2',
-    name: 'WEB BUSINESS',
-    category: 'web',
-    price: '3.900.000',
-    period: 'pago unico',
-    description: 'Sitio corporativo completo para vender servicios, mostrar portafolio y captar clientes.',
-    features: ['Hasta 6 secciones', 'Portafolio editable', 'Paquetes dinamicos', 'Panel administrativo'],
-    recommended: true,
-    icon: 'Globe',
-    page: 'pricing-web',
-  },
-];
-
 const Pricing: React.FC<PricingProps> = ({ whatsappNumber = '573017355046' }) => {
   const [activeTab, setActiveTab] = useState<TabKey>('social');
   const [plans, setPlans] = useState<any[]>([]);
@@ -166,7 +92,7 @@ const Pricing: React.FC<PricingProps> = ({ whatsappNumber = '573017355046' }) =>
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  const sourcePlans = plans.length > 0 ? plans : DEFAULT_PLANS;
+  const sourcePlans = plans.length > 0 ? plans : DEFAULT_PRICING_PACKAGES;
   const currentPlans = useMemo(() => sourcePlans.filter((plan) => plan.category === activeTab), [sourcePlans, activeTab]);
 
   const handleOpenWhatsapp = (plan: any) => {

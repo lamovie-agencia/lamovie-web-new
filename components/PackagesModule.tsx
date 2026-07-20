@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Plus, Edit, Trash2, Save, X, AlertCircle, Check, Sparkles,
-  Film, Crown, Star, Monitor, Globe, ShoppingBag, LayoutTemplate, Eye
+  Film, Crown, Star, Monitor, Globe, ShoppingBag, LayoutTemplate, Eye, Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { adminService } from '../lib/adminService';
 import { useAuth } from '../lib/authService';
+import { DEFAULT_PRICING_PACKAGES } from '../lib/defaultPackages';
 
 interface Package {
   id: number;
@@ -27,6 +28,7 @@ const ICON_OPTIONS: { value: string; icon: React.ReactNode; label: string }[] = 
   { value: 'Crown', icon: <Crown size={18} />, label: 'Corona' },
   { value: 'Star', icon: <Star size={18} />, label: 'Estrella' },
   { value: 'Sparkles', icon: <Sparkles size={18} />, label: 'Chispa' },
+  { value: 'Zap', icon: <Zap size={18} />, label: 'Rayo' },
   { value: 'Monitor', icon: <Monitor size={18} />, label: 'Monitor' },
   { value: 'Globe', icon: <Globe size={18} />, label: 'Globo' },
   { value: 'ShoppingBag', icon: <ShoppingBag size={18} />, label: 'Bolsa' },
@@ -37,81 +39,6 @@ const CATEGORIES = [
   { value: 'social', label: 'SOCIAL MEDIA', color: 'text-blue-400' },
   { value: 'estrategia', label: 'TRÁFICO & PERFORMANCE', color: 'text-purple-400' },
   { value: 'web', label: 'DESARROLLO WEB', color: 'text-green-400' }
-];
-
-const DEFAULT_PACKAGES: Omit<Package, 'id' | 'created_at'>[] = [
-  {
-    name: 'STARTER REELS',
-    category: 'social',
-    price: '690.000',
-    period: '/ mes',
-    description: 'Contenido vertical listo para publicar, con portadas, copies y calendario base.',
-    features: ['8 reels editados', '8 portadas 9:16', 'Calendario de publicacion', 'Copywriting para captions'],
-    recommended: false,
-    icon: 'Film',
-    color: 'border-white/20',
-    page: 'pricing-social'
-  },
-  {
-    name: 'SOCIAL PRO',
-    category: 'social',
-    price: '1.390.000',
-    period: '/ mes',
-    description: 'Sistema mensual de contenido para sostener presencia, ventas y reconocimiento.',
-    features: ['16 reels editados', '12 piezas graficas', 'Parrilla mensual', 'Reporte de rendimiento'],
-    recommended: true,
-    icon: 'Star',
-    color: 'border-movie-red',
-    page: 'pricing-social'
-  },
-  {
-    name: 'TRAFFIC LAUNCH',
-    category: 'estrategia',
-    price: '1.800.000',
-    period: '/ campana',
-    description: 'Campanas de trafico con estructura comercial, piezas creativas y medicion clara.',
-    features: ['Setup de Meta Ads', '3 audiencias iniciales', 'Creativos de prueba', 'Optimizacion semanal'],
-    recommended: true,
-    icon: 'Sparkles',
-    color: 'border-movie-red',
-    page: 'pricing-estrategia'
-  },
-  {
-    name: 'PERFORMANCE SCALE',
-    category: 'estrategia',
-    price: '2.900.000',
-    period: '/ mes',
-    description: 'Escalamiento de pauta, funnel y remarketing para negocios con oferta validada.',
-    features: ['Embudo de conversion', 'Remarketing', 'Dashboard de resultados', 'Iteracion creativa'],
-    recommended: false,
-    icon: 'Crown',
-    color: 'border-white/20',
-    page: 'pricing-estrategia'
-  },
-  {
-    name: 'LANDING PRO',
-    category: 'web',
-    price: '1.600.000',
-    period: 'pago unico',
-    description: 'Landing page rapida, cinematografica y enfocada en conversion por WhatsApp.',
-    features: ['Diseno responsive', 'SEO base', 'Formulario o WhatsApp', 'Integracion analytics'],
-    recommended: false,
-    icon: 'Monitor',
-    color: 'border-white/20',
-    page: 'pricing-web'
-  },
-  {
-    name: 'WEB BUSINESS',
-    category: 'web',
-    price: '3.900.000',
-    period: 'pago unico',
-    description: 'Sitio corporativo completo para vender servicios, mostrar portafolio y captar clientes.',
-    features: ['Hasta 6 secciones', 'Portafolio editable', 'Paquetes dinamicos', 'Panel administrativo'],
-    recommended: true,
-    icon: 'Globe',
-    color: 'border-movie-red',
-    page: 'pricing-web'
-  }
 ];
 
 export const PackagesModule: React.FC = () => {
@@ -257,7 +184,7 @@ export const PackagesModule: React.FC = () => {
     setIsSyncing(true);
     try {
       const existingNames = new Set(packages.map((pkg) => pkg.name.trim().toLowerCase()));
-      const missingPackages = DEFAULT_PACKAGES.filter((pkg) => !existingNames.has(pkg.name.trim().toLowerCase()));
+      const missingPackages = DEFAULT_PRICING_PACKAGES.filter((pkg) => !existingNames.has(pkg.name.trim().toLowerCase()));
 
       if (missingPackages.length === 0) {
         setStatusMsg({ text: 'Los paquetes base ya existen y puedes editarlos.', error: false });

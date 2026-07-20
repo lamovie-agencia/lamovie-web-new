@@ -31,6 +31,10 @@ export function setCors(res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.setHeader('Cache-Control', 'no-store, max-age=0');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
 }
 
 export function authenticateToken(req: AuthenticatedRequest): boolean {
@@ -280,6 +284,40 @@ export async function ensureCoreSchema() {
           payload TEXT,
           status TEXT DEFAULT 'success',
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS production_shoots (
+          id SERIAL PRIMARY KEY,
+          title TEXT NOT NULL,
+          date TEXT DEFAULT '',
+          status TEXT DEFAULT 'Pre-producción',
+          crew TEXT DEFAULT '',
+          location TEXT DEFAULT '',
+          notes TEXT DEFAULT '',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS social_posts (
+          id SERIAL PRIMARY KEY,
+          text TEXT NOT NULL,
+          platform TEXT DEFAULT 'Instagram',
+          date TEXT DEFAULT '',
+          status TEXT DEFAULT 'Programado',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS dashboard_comments (
+          id SERIAL PRIMARY KEY,
+          author TEXT NOT NULL,
+          avatar TEXT DEFAULT '',
+          text TEXT NOT NULL,
+          date TEXT DEFAULT '',
+          page TEXT DEFAULT '',
+          status TEXT DEFAULT 'Pendiente',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
       `);
 

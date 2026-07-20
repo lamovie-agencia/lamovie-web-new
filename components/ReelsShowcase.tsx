@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Play, TrendingUp, X } from 'lucide-react';
 import { ASSETS } from '../data/assets';
+import { VideoMidpointCover } from './VideoMidpointCover';
 
 const resolveReelPoster = (reel: { title?: string; thumbnail_url?: string; image_url?: string; category?: string; media_url?: string; video_url?: string }) => {
   if (reel.thumbnail_url || reel.image_url) return reel.thumbnail_url || reel.image_url || '';
@@ -42,11 +43,12 @@ function formatMetric(value?: number) {
   return String(n);
 }
 
+const isDirectVideoUrl = (url?: string) => /\.(mp4|mov|m4v|webm)(\?|$)/i.test(String(url || ''));
+
 function ReelCard({ reel, onOpen }: { reel: Reel; onOpen: (reel: Reel) => void }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
   const src = reel.media_url || reel.video_url || '';
   const poster = resolveReelPoster(reel);
-  const isFrameSource = /youtube\.com\/embed|player\.vimeo\.com|instagram\.com\/.*\/embed/.test(src);
+  const isFrameSource = !isDirectVideoUrl(src) && /youtube\.com\/embed|player\.vimeo\.com|instagram\.com\/.*\/embed/.test(src);
 
   return (
     <motion.button
@@ -63,15 +65,12 @@ function ReelCard({ reel, onOpen }: { reel: Reel; onOpen: (reel: Reel) => void }
           className="absolute inset-0 h-full w-full object-cover object-center opacity-75 transition-opacity duration-300 group-hover:opacity-100 pointer-events-none"
         />
       ) : (
-        <video
-          ref={videoRef}
+        <VideoMidpointCover
           src={src}
           poster={poster}
           autoPlay
           loop
-          muted
-          playsInline
-          preload="metadata"
+          title={reel.title}
           className="absolute inset-0 h-full w-full object-cover object-center opacity-75 transition-opacity duration-300 group-hover:opacity-100"
         />
       )}
@@ -219,7 +218,7 @@ export default function ReelsShowcase() {
               exit={{ scale: 0.92, y: 20 }}
               className="relative aspect-[9/16] h-[82svh] max-h-[90vh] max-w-[92vw] overflow-hidden rounded-[24px] border border-white/10 bg-neutral-950 shadow-2xl sm:h-[88vh] sm:max-w-[85vw] sm:rounded-[32px] md:max-w-[600px]"
             >
-              {/youtube\.com\/embed|player\.vimeo\.com|instagram\.com\/.*\/embed/.test(selected.media_url || selected.video_url || '') ? (
+              {!isDirectVideoUrl(selected.media_url || selected.video_url) && /youtube\.com\/embed|player\.vimeo\.com|instagram\.com\/.*\/embed/.test(selected.media_url || selected.video_url || '') ? (
                 <iframe
                   src={selected.media_url || selected.video_url}
                   title={selected.title}
@@ -228,12 +227,11 @@ export default function ReelsShowcase() {
                   className="w-full h-full object-contain"
                 />
               ) : (
-                <video
+                <VideoMidpointCover
                   src={selected.media_url || selected.video_url}
                   poster={resolveReelPoster(selected)}
                   autoPlay
                   controls
-                  playsInline
                   className="w-full h-full object-contain bg-black"
                 />
               )}

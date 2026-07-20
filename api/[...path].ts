@@ -37,6 +37,12 @@ import teamMemberItem from '../api-src/team-members/[id].js';
 import v1AiLogs from '../api-src/v1/ai-logs.js';
 import webShowcase from '../api-src/web-showcase.js';
 import webShowcaseItem from '../api-src/web-showcase/[id].js';
+import productionShoots from '../api-src/production-shoots.js';
+import productionShootItem from '../api-src/production-shoots/[id].js';
+import socialPosts from '../api-src/social-posts.js';
+import socialPostItem from '../api-src/social-posts/[id].js';
+import dashboardComments from '../api-src/dashboard-comments.js';
+import dashboardCommentItem from '../api-src/dashboard-comments/[id].js';
 
 type ApiHandler = (req: VercelRequest, res: VercelResponse) => Promise<any> | any;
 
@@ -98,6 +104,12 @@ const routeHandlers: Record<string, ApiHandler> = {
   'testimonials/[id]': testimonialItem,
   'team-members': teamMembers,
   'team-members/[id]': teamMemberItem,
+  'production-shoots': productionShoots,
+  'production-shoots/[id]': productionShootItem,
+  'social-posts': socialPosts,
+  'social-posts/[id]': socialPostItem,
+  'dashboard-comments': dashboardComments,
+  'dashboard-comments/[id]': dashboardCommentItem,
   'v1/ai-logs': v1AiLogs,
   'web-showcase': webShowcase,
   'web-showcase/[id]': webShowcaseItem

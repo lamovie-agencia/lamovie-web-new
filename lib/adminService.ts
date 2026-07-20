@@ -561,6 +561,88 @@ export const adminService = {
     const res = await secureFetch(`${API_URL}/ai-logs`, {}, token);
     return res.json();
   },
+
+  getProductionShoots: async (token?: string) => {
+    const res = await secureFetch(`${API_URL}/production-shoots`, {}, token);
+    return res.json();
+  },
+  createProductionShoot: async (data: any, token?: string) => {
+    const res = await secureFetch(`${API_URL}/production-shoots`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }, token);
+    return res.json();
+  },
+  updateProductionShoot: async (id: number, data: any, token?: string) => {
+    const res = await secureFetch(`${API_URL}/production-shoots/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }, token);
+    return res.json();
+  },
+  deleteProductionShoot: async (id: number, token?: string) => {
+    const res = await secureFetch(`${API_URL}/production-shoots/${id}`, {
+      method: 'DELETE'
+    }, token);
+    return res.json();
+  },
+
+  getSocialPosts: async (token?: string) => {
+    const res = await secureFetch(`${API_URL}/social-posts`, {}, token);
+    return res.json();
+  },
+  createSocialPost: async (data: any, token?: string) => {
+    const res = await secureFetch(`${API_URL}/social-posts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }, token);
+    return res.json();
+  },
+  updateSocialPost: async (id: number, data: any, token?: string) => {
+    const res = await secureFetch(`${API_URL}/social-posts/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }, token);
+    return res.json();
+  },
+  deleteSocialPost: async (id: number, token?: string) => {
+    const res = await secureFetch(`${API_URL}/social-posts/${id}`, {
+      method: 'DELETE'
+    }, token);
+    return res.json();
+  },
+
+  getDashboardComments: async (token?: string) => {
+    const res = await secureFetch(`${API_URL}/dashboard-comments`, {}, token);
+    return res.json();
+  },
+  createDashboardComment: async (data: any, token?: string) => {
+    const res = await secureFetch(`${API_URL}/dashboard-comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }, token);
+    return res.json();
+  },
+  updateDashboardComment: async (id: number, data: any, token?: string) => {
+    const res = await secureFetch(`${API_URL}/dashboard-comments/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    }, token);
+    return res.json();
+  },
+  deleteDashboardComment: async (id: number, token?: string) => {
+    const res = await secureFetch(`${API_URL}/dashboard-comments/${id}`, {
+      method: 'DELETE'
+    }, token);
+    return res.json();
+  },
+
   getAdminStatus: async (token?: string) => {
     const res = await secureFetch(`${API_URL}/admin/status`, {}, token);
     return res.json();

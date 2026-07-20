@@ -572,7 +572,7 @@ async function startServer() {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-XSS-Protection", "1; mode=block");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-    res.setHeader("X-Frame-Options", "ALLOWALL");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
     next();
   });
 
@@ -647,6 +647,12 @@ async function startServer() {
     if (req.body) {
       req.body = sanitizeInput(req.body);
     }
+    if (req.query) {
+      req.query = sanitizeInput(req.query);
+    }
+    if (req.params) {
+      req.params = sanitizeInput(req.params);
+    }
     next();
   });
 
@@ -666,13 +672,19 @@ async function startServer() {
   const authenticateToken = (req: any, res: any, next: any) => {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
-    
+    const jwtSecretValue = process.env.JWT_SECRET;
+
     if (!token) {
       return res.status(401).json({ error: "No se proporcionó token de sesión" });
     }
 
+    if (!jwtSecretValue) {
+      console.error("❌ AUTHENTICATION MISCONFIGURATION: Missing JWT_SECRET for request validation.");
+      return res.status(500).json({ error: "Server authentication configuration error." });
+    }
+
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || "lamovie_secure_fallback_salt_2026");
+      const decoded = jwt.verify(token, jwtSecretValue);
       req.user = decoded;
       next();
     } catch (err) {
@@ -698,7 +710,7 @@ async function startServer() {
     
     const token = jwt.sign(
       { username: username || adminUsername, role: "Administrador Master" }, 
-      process.env.JWT_SECRET || "lamovie_secure_fallback_salt_2026", 
+      jwtSecret,
       { expiresIn: "24h" }
     );
 

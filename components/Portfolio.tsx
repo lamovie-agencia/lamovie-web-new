@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ASSETS } from '../data/assets';
+import { VideoMidpointCover } from './VideoMidpointCover';
 
 const resolvePortfolioThumbnail = (item: { title?: string; category?: string; thumbnail_url?: string; image_url?: string; gallery_images?: string[] }) => {
   if (item.thumbnail_url || item.image_url) return item.thumbnail_url || item.image_url || '';
@@ -47,8 +48,10 @@ const filterCategories = [
   { id: 'branding', label: 'Branding', icon: <Palette size={16} /> }
 ];
 
+const isDirectVideoUrl = (url?: string) => /\.(mp4|mov|m4v|webm)(\?|$)/i.test(String(url || ''));
+
 const isNativeVideoSource = (work: Pick<DbPortfolioItem, 'media_source' | 'media_url'>) =>
-  Boolean(work.media_url) && (work.media_source === 'native' || !work.media_source);
+  Boolean(work.media_url) && (work.media_source === 'native' || !work.media_source || isDirectVideoUrl(work.media_url));
 
 interface PortfolioCardProps {
   work: DbPortfolioItem;
@@ -61,8 +64,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
   const displayThumbnail = resolvePortfolioThumbnail(work);
   const displayCategory = work.category ?? "cinema";
   const displayFormat = work.format_type ?? "horizontal";
-  const hasExplicitPoster = Boolean(work.thumbnail_url || work.image_url || work.gallery_images?.[0]);
-  const canUseVideoFrame = !hasExplicitPoster && isNativeVideoSource(work);
+  const canUseVideoFrame = isNativeVideoSource(work);
 
   // Dynamic layout grid spacing configuration
   const gridClasses = useMemo(() => {
@@ -100,11 +102,10 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
     >
       {/* Background Image backdrop (lazy image loads) */}
       {canUseVideoFrame ? (
-        <video
+        <VideoMidpointCover
           src={work.media_url}
-          muted
-          playsInline
-          preload="metadata"
+          poster={displayThumbnail}
+          title={work.title}
           className={`absolute inset-0 w-full h-full ${mediaFitClass} object-center transition-transform duration-1000 group-hover:scale-105 ${
             isHovered ? 'scale-105 blur-[1px] opacity-30' : 'scale-100 opacity-90'
           }`}
@@ -123,7 +124,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
       {/* Video Hover auto-playback preview */}
       {isHovered && work.media_url && (
         <div className="absolute inset-0 z-10 w-full h-full overflow-hidden transition-opacity duration-700 animate-fade-in bg-black">
-          {work.media_source === 'youtube' && (
+          {work.media_source === 'youtube' && !isDirectVideoUrl(work.media_url) && (
             <iframe
               src={`${work.media_url}${work.media_url.includes('?') ? '&' : '?'}autoplay=1&mute=1&controls=0&loop=1&playlist=${work.media_url.split('/').pop()?.split('?')[0] ?? ''}&background=1`}
               className="w-full h-full object-contain pointer-events-none"
@@ -131,7 +132,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
               allow="autoplay; encrypted-media"
             />
           )}
-          {work.media_source === 'vimeo' && (
+          {work.media_source === 'vimeo' && !isDirectVideoUrl(work.media_url) && (
             <iframe
               src={`${work.media_url}${work.media_url.includes('?') ? '&' : '?'}autoplay=1&muted=1&controls=0&loop=1&background=1`}
               className="w-full h-full object-contain pointer-events-none"
@@ -139,7 +140,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
               allow="autoplay; encrypted-media"
             />
           )}
-          {work.media_source === 'instagram' && (
+          {work.media_source === 'instagram' && !isDirectVideoUrl(work.media_url) && (
             <iframe
               src={work.media_url}
               className="w-full h-full object-contain pointer-events-none"
@@ -148,7 +149,7 @@ const PortfolioCard: React.FC<PortfolioCardProps> = ({ work, onClick }) => {
               allowTransparency
             />
           )}
-          {(work.media_source === 'native' || !work.media_source) && (
+          {isNativeVideoSource(work) && (
             <video
               src={work.media_url}
               poster={displayThumbnail}
@@ -426,7 +427,7 @@ const Portfolio: React.FC = () => {
                   </div>
                 ) : selectedWork.media_url ? (
                   <>
-                    {selectedWork.media_source === 'youtube' && (
+                    {selectedWork.media_source === 'youtube' && !isDirectVideoUrl(selectedWork.media_url) && (
                       <iframe
                         src={`${selectedWork.media_url}${selectedWork.media_url.includes('?') ? '&' : '?'}autoplay=1&controls=1&rel=0`}
                         className="w-full h-full"
@@ -435,7 +436,7 @@ const Portfolio: React.FC = () => {
                         allowFullScreen
                       />
                     )}
-                    {selectedWork.media_source === 'vimeo' && (
+                    {selectedWork.media_source === 'vimeo' && !isDirectVideoUrl(selectedWork.media_url) && (
                       <iframe
                         src={`${selectedWork.media_url}${selectedWork.media_url.includes('?') ? '&' : '?'}autoplay=1&controls=1`}
                         className="w-full h-full"
@@ -444,7 +445,7 @@ const Portfolio: React.FC = () => {
                         allowFullScreen
                       />
                     )}
-                    {selectedWork.media_source === 'instagram' && (
+                    {selectedWork.media_source === 'instagram' && !isDirectVideoUrl(selectedWork.media_url) && (
                       <iframe
                         src={selectedWork.media_url}
                         className="w-full h-full scale-[1.02]"
@@ -452,13 +453,12 @@ const Portfolio: React.FC = () => {
                         scrolling="no"
                       />
                     )}
-                    {(selectedWork.media_source === 'native' || !selectedWork.media_source) && (
-                      <video 
+                    {isNativeVideoSource(selectedWork) && (
+                      <VideoMidpointCover
                         src={selectedWork.media_url} 
                         poster={resolvePortfolioThumbnail(selectedWork)}
-                        autoPlay 
                         controls 
-                        playsInline
+                        autoPlay
                         className="w-full h-full object-contain"
                       />
                     )}

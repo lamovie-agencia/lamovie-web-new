@@ -1,5 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { AuthenticatedRequest, asArray, authenticateToken, ensureCoreSchema, getPool, setCors } from '../lib/apiDb.js';
+import { DEFAULT_PRICING_PACKAGES } from '../lib/defaultPackages.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(res);
@@ -10,6 +11,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const db = getPool();
 
     if (req.method === 'GET') {
+      await Promise.all(DEFAULT_PRICING_PACKAGES.map((pkg) => db.query(
+        `INSERT INTO pricing_packages (name, category, price, period, description, features, recommended, color, icon, page)
+         SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+         WHERE NOT EXISTS (
+           SELECT 1 FROM pricing_packages WHERE LOWER(TRIM(name)) = LOWER(TRIM($1))
+         )`,
+        [pkg.name, pkg.category, pkg.price, pkg.period, pkg.description, pkg.features, pkg.recommended, pkg.color, pkg.icon, pkg.page]
+      )));
+
       const result = await db.query('SELECT * FROM pricing_packages ORDER BY created_at DESC, id DESC');
       return res.status(200).json(result.rows);
     }

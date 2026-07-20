@@ -10,6 +10,7 @@ import { useAuth } from '../lib/authService';
 import { ASSETS } from '../data/assets';
 import { motion, AnimatePresence } from 'motion/react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { VideoMidpointCover } from './VideoMidpointCover';
 
 export interface PortfolioItem {
   id: number;
@@ -118,8 +119,10 @@ const getInitialContentMode = (item?: Partial<PortfolioItem>) => {
   return 'video' as const;
 };
 
+const isDirectVideoUrl = (url?: string) => /\.(mp4|mov|m4v|webm)(\?|$)/i.test(String(url || ''));
+
 const isNativeVideoSource = (item: Pick<PortfolioItem, 'media_source' | 'media_url'>) =>
-  Boolean(item.media_url) && (item.media_source === 'native' || !item.media_source);
+  Boolean(item.media_url) && (item.media_source === 'native' || !item.media_source || isDirectVideoUrl(item.media_url));
 
 const buildAiTitle = ({
   category,
@@ -142,7 +145,7 @@ const buildAiTitle = ({
 
 const getAutoCaptureTime = (duration: number) => {
   if (!Number.isFinite(duration) || duration <= 0) return 0.6;
-  return Math.min(Math.max(duration * 0.12, 0.6), Math.max(duration - 0.15, 0));
+  return Math.min(Math.max(duration * 0.5, 0.6), Math.max(duration - 0.15, 0));
 };
 
 async function captureVideoFrame(file: File, seconds?: number): Promise<File | null> {
@@ -200,8 +203,7 @@ const SmartMediaPreview = React.memo(({ item }: { item: PortfolioItem }) => {
   const displayCategory = item.category ?? "cinema";
   const displayViews = item.views ?? (1000 + (item.id % 77) * 115);
   const displayLikes = item.likes ?? (200 + (item.id % 43) * 22);
-  const hasExplicitPoster = Boolean(item.thumbnail_url || item.image_url || item.gallery_images?.[0]);
-  const canUseVideoFrame = !hasExplicitPoster && isNativeVideoSource(item);
+  const canUseVideoFrame = isNativeVideoSource(item);
 
   return (
     <div 
@@ -210,12 +212,10 @@ const SmartMediaPreview = React.memo(({ item }: { item: PortfolioItem }) => {
       onMouseLeave={() => setIsHovered(false)}
     >
       {canUseVideoFrame ? (
-        <video
+        <VideoMidpointCover
           src={item.media_url}
           poster={displayThumbnail}
-          muted
-          playsInline
-          preload="metadata"
+          title={item.title}
           className={`w-full h-full object-cover transition-all duration-700 ${isHovered ? 'scale-105 blur-[2px] opacity-40' : 'scale-100 opacity-90'}`}
         />
       ) : (

@@ -57,7 +57,7 @@ import {
   MapPin
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'crm' | 'leads' | 'projects' | 'production' | 'social' | 'ai' | 'analytics' | 'finance' | 'documents' | 'portfolio' | 'partners' | 'services' | 'testimonials' | 'web-showcase' | 'pricing' | 'settings' | 'tasks' | 'notes';
+type Tab = 'dashboard' | 'crm' | 'leads' | 'projects' | 'production' | 'social' | 'ai' | 'analytics' | 'finance' | 'documents' | 'portfolio' | 'partners' | 'services' | 'testimonials' | 'web-showcase' | 'pricing' | 'settings' | 'tasks' | 'notes' | 'comments';
 
 const isProspectStatus = (status: string) => ['prospect', 'new', 'contacted'].includes(status);
 const isActiveStatus = (status: string) => ['active', 'closed', 'converted'].includes(status);
@@ -203,17 +203,10 @@ const AdminDashboardInner: React.FC = () => {
     environment: { node_env: "production", vercel: false, jwt_defined: false, port: 3000 }
   });
 
-  const [productionShoots, setProductionShoots] = useState([
-    { id: 1, title: 'Rodaje Reels Lanzamiento Nike', date: '2026-06-05', status: 'Pre-producción', crew: 'Yosii + Juan', location: 'Estudio Principal', notes: 'Grabación de video en 4K 120fps slow-mo' },
-    { id: 2, title: 'Spot Premium Spotify', date: '2026-06-12', status: 'Edición', crew: 'Yosii Sarmiento', location: 'Bocagrande', notes: 'Requiere esquemas de color e iluminación de alta fidelidad' },
-    { id: 3, title: 'TikToks Virales RedBull Extreme', date: '2026-05-28', status: 'Grabado', crew: 'Mateo C.', location: 'Castillo de San Felipe', notes: 'Tomas dinámicas con estabilizador y gimbal' }
-  ]);
+  const [productionShoots, setProductionShoots] = useState<any[]>([]);
   const [newShoot, setNewShoot] = useState({ title: '', date: '', status: 'Pre-producción', crew: '', location: '', notes: '' });
 
-  const [socialPosts, setSocialPosts] = useState([
-    { id: 1, text: '¡Se viene lo mejor! 🎬 Detrás de cámaras de nuestra última filmación comercial para Nike Latam. ¿Están listos?', platform: 'Instagram', status: 'Programado', date: '2026-06-01' },
-    { id: 2, text: '3 trucos de retención para explotar tus visitas en TikTok y Reels de forma inmediata sin pagar publicidad. 🚀', platform: 'TikTok', status: 'Borrador', date: '2026-05-30' }
-  ]);
+  const [socialPosts, setSocialPosts] = useState<any[]>([]);
   const [socialForm, setSocialForm] = useState({ text: '', platform: 'Instagram', date: '' });
 
   const [aiPrompt, setAiPrompt] = useState('');
@@ -223,10 +216,7 @@ const AdminDashboardInner: React.FC = () => {
   const [aiLogs, setAiLogs] = useState<any[]>([]);
   const [isLoadingAiLogs, setIsLoadingAiLogs] = useState(false);
 
-  const [dashboardComments, setDashboardComments] = useState([
-    { id: 1, author: "Yamil Sarmiento", avatar: "YS", text: "¿Tienen disponibilidad para producción de un spot de marca este mes de Julio en Cartagena o Barranquilla?", date: "Hace 10 min", page: "Landing Principal", status: "Pendiente" },
-    { id: 2, author: "Yosimar Zúñiga", avatar: "YZ", text: "Excelente servicio de optimización audiovisual, las métricas de alcance orgánico subieron a más de 100 mil de forma inmediata. Increíble servicio.", date: "Hace 3 horas", page: "Servicios", status: "Aprobado" }
-  ]);
+  const [dashboardComments, setDashboardComments] = useState<any[]>([]);
 
   const [webForm, setWebForm] = useState({
     title: '',
@@ -396,7 +386,7 @@ const AdminDashboardInner: React.FC = () => {
     if (!currentToken) return;
     setLoading(true);
     try {
-      const [pData, sData, tData, wData, prData, partnersData, settingsData, tskData, ntsData, crmData, statusData, aiLogsData] = await Promise.all([
+      const [pData, sData, tData, wData, prData, partnersData, settingsData, tskData, ntsData, crmData, statusData, aiLogsData, productionData, socialData, commentsData] = await Promise.all([
         adminService.getPortfolio().catch((err) => { console.warn("Portfolio fetch failed", err); return []; }),
         adminService.getServices().catch((err) => { console.warn("Services fetch failed", err); return []; }),
         adminService.getTestimonials().catch((err) => { console.warn("Testimonials fetch failed", err); return []; }),
@@ -408,7 +398,10 @@ const AdminDashboardInner: React.FC = () => {
         adminService.getNotes(currentToken).catch((err) => { console.warn("Notes fetch failed", err); return []; }),
         adminService.getCrmClients(currentToken).catch((err) => { console.warn("CRM fetch failed", err); return []; }),
         adminService.getAdminStatus(currentToken).catch((err) => { console.warn("Admin status fetch failed", err); return null; }),
-        adminService.getAiLogs(currentToken).catch((err) => { console.warn("AI Logs fetch failed", err); return []; })
+        adminService.getAiLogs(currentToken).catch((err) => { console.warn("AI Logs fetch failed", err); return []; }),
+        adminService.getProductionShoots(currentToken).catch((err) => { console.warn("Production shoots fetch failed", err); return []; }),
+        adminService.getSocialPosts(currentToken).catch((err) => { console.warn("Social posts fetch failed", err); return []; }),
+        adminService.getDashboardComments(currentToken).catch((err) => { console.warn("Dashboard comments fetch failed", err); return []; })
       ]);
       setPortfolio(Array.isArray(pData) ? pData : []);
       setServices(Array.isArray(sData) ? sData : []);
@@ -421,6 +414,9 @@ const AdminDashboardInner: React.FC = () => {
       setNotes(Array.isArray(ntsData) ? ntsData : []);
       setCrmClients(Array.isArray(crmData) ? crmData : []);
       setAiLogs(Array.isArray(aiLogsData) ? aiLogsData : []);
+      setProductionShoots(Array.isArray(productionData) ? productionData : []);
+      setSocialPosts(Array.isArray(socialData) ? socialData : []);
+      setDashboardComments(Array.isArray(commentsData) ? commentsData : []);
       if (statusData) {
         setSystemStatus({
           database: statusData.database || statusData.services?.database || { connected: false, type: 'PostgreSQL', url_defined: false },
@@ -555,8 +551,8 @@ const AdminDashboardInner: React.FC = () => {
     e.preventDefault();
     if (!token) return;
     setIsSubmitting(true);
-    // Helper: capture first video frame as data URL (client-side). May fail due to CORS.
-    const captureFirstFrame = async (videoUrl: string) => {
+    // Helper: capture the middle video frame as data URL (client-side). May fail due to CORS.
+    const captureMiddleFrame = async (videoUrl: string) => {
       return new Promise<string | null>((resolve) => {
         try {
           const video = document.createElement('video');
@@ -569,10 +565,33 @@ const AdminDashboardInner: React.FC = () => {
             video.remove();
           };
 
-          const onLoaded = () => {
+          const drawFrame = () => {
             try {
-              video.currentTime = 0;
-            } catch (e) {}
+              const canvas = document.createElement('canvas');
+              canvas.width = video.videoWidth || 1280;
+              canvas.height = video.videoHeight || 720;
+              const ctx = canvas.getContext('2d');
+              ctx?.drawImage(video, 0, 0, canvas.width, canvas.height);
+              const data = canvas.toDataURL('image/jpeg', 0.86);
+              cleanup();
+              resolve(data);
+            } catch (err) {
+              cleanup();
+              resolve(null);
+            }
+          };
+
+          const onLoadedMetadata = () => {
+            const duration = Number.isFinite(video.duration) ? video.duration : 0;
+            const midpoint = duration > 0 ? Math.min(duration * 0.5, Math.max(duration - 0.15, 0.1)) : 0.5;
+            try {
+              video.currentTime = midpoint;
+            } catch {
+              drawFrame();
+            }
+          };
+
+          const onSeeked = () => {
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth || 1280;
             canvas.height = video.videoHeight || 720;
@@ -593,7 +612,11 @@ const AdminDashboardInner: React.FC = () => {
             resolve(null);
           };
 
-          video.addEventListener('loadeddata', onLoaded, { once: true });
+          video.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
+          video.addEventListener('seeked', onSeeked, { once: true });
+          video.addEventListener('loadeddata', () => {
+            if (!Number.isFinite(video.duration) || video.duration <= 0) drawFrame();
+          }, { once: true });
           video.addEventListener('error', onError, { once: true });
         } catch (err) {
           resolve(null);
@@ -605,7 +628,7 @@ const AdminDashboardInner: React.FC = () => {
       // If there is a native video URL but no image/thumbnail, attempt to capture a frame
       if (!portfolioForm.image_url && portfolioForm.video_url) {
         try {
-          const captured = await captureFirstFrame(portfolioForm.video_url);
+          const captured = await captureMiddleFrame(portfolioForm.video_url);
           if (captured) {
             portfolioForm.image_url = captured;
             portfolioForm.thumbnail_url = captured as any;
@@ -854,6 +877,10 @@ const AdminDashboardInner: React.FC = () => {
     }
   };
 
+  const dispatchGlobalDataSync = useCallback((detail?: any) => {
+    window.dispatchEvent(new CustomEvent('laMovieDataUpdated', { detail }));
+  }, []);
+
   const handleCrmSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
@@ -869,6 +896,7 @@ const AdminDashboardInner: React.FC = () => {
       }
       setCrmForm({ name: '', email: '', phone: '', status: 'prospect', value: '', tag: '', reminder: '', service: '', contractStart: '', contractEnd: '', serviceValue: '', billingCycle: 'unique' });
       fetchData();
+      dispatchGlobalDataSync({ type: 'crm' });
     } catch (err) {
       showFeedback('error', 'No se pudo guardar el cliente CRM.');
     } finally {
@@ -916,6 +944,7 @@ const AdminDashboardInner: React.FC = () => {
     try {
       await adminService.convertClient(client.id, currentToken);
       await fetchData();
+      dispatchGlobalDataSync({ type: 'crm' });
       showFeedback('success', `Cliente ${client.name} convertido correctamente.`);
     } catch (err) {
       console.error('Failed client conversion:', err);
@@ -935,8 +964,12 @@ const AdminDashboardInner: React.FC = () => {
       if (type === 'tasks') await adminService.deleteTask(id, token);
       if (type === 'notes') await adminService.deleteNote(id, token);
       if (type === 'crm') await adminService.deleteCrmClient(id, token);
+      if (type === 'production') await adminService.deleteProductionShoot(id, token);
+      if (type === 'social') await adminService.deleteSocialPost(id, token);
+      if (type === 'comments') await adminService.deleteDashboardComment(id, token);
       showFeedback('success', 'Elemento eliminado correctamente.');
       fetchData();
+      if (type === 'crm') dispatchGlobalDataSync({ type: 'crm' });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo eliminar el elemento.';
       showFeedback('error', message);
@@ -1548,8 +1581,15 @@ const AdminDashboardInner: React.FC = () => {
                             <div className="flex items-center gap-3 pt-4 border-t border-white/5 mt-4">
                               {comment.status === 'Pendiente' && (
                                 <button 
-                                  onClick={() => {
-                                    setDashboardComments(dashboardComments.map(c => c.id === comment.id ? { ...c, status: 'Aprobado' } : c));
+                                  onClick={async () => {
+                                    if (!token) return;
+                                    try {
+                                      await adminService.updateDashboardComment(comment.id, { status: 'Aprobado' }, token);
+                                      showFeedback('success', 'Comentario aprobado.');
+                                      fetchData();
+                                    } catch (err) {
+                                      showFeedback('error', 'No se pudo aprobar el comentario.');
+                                    }
                                   }}
                                   className="px-3.5 py-1.5 bg-green-500/10 border border-green-500/20 hover:bg-green-500 hover:text-black rounded-lg text-[9px] uppercase tracking-wider font-bold text-green-400 transition-all pointer-events-auto"
                                 >
@@ -1557,18 +1597,23 @@ const AdminDashboardInner: React.FC = () => {
                                 </button>
                               )}
                               <button 
-                                onClick={() => {
+                                onClick={async () => {
+                                  if (!token) return;
                                   const reply = prompt(`Escribe tu respuesta pública para ${comment.author}:`);
-                                  if (reply) {
-                                    setDashboardComments([...dashboardComments, {
-                                      id: Date.now(),
+                                  if (!reply) return;
+                                  try {
+                                    await adminService.createDashboardComment({
                                       author: 'Soporte La Movie',
                                       avatar: 'LM',
                                       text: `↳ Respuesta a ${comment.author}: "${reply}"`,
                                       date: 'Hace un momento',
                                       page: comment.page,
                                       status: 'Aprobado'
-                                    }]);
+                                    }, token);
+                                    showFeedback('success', 'Respuesta guardada correctamente.');
+                                    fetchData();
+                                  } catch (err) {
+                                    showFeedback('error', 'No se pudo guardar la respuesta.');
                                   }
                                 }}
                                 className="px-3.5 py-1.5 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500 hover:text-black rounded-lg text-[9px] uppercase tracking-wider font-bold text-blue-400 transition-all"
@@ -1576,8 +1621,9 @@ const AdminDashboardInner: React.FC = () => {
                                 Responder
                               </button>
                               <button 
-                                onClick={() => {
-                                  setDashboardComments(dashboardComments.filter(c => c.id !== comment.id));
+                                onClick={async () => {
+                                  if (!token) return;
+                                  await handleDelete('comments', comment.id);
                                 }}
                                 className="px-3.5 py-1.5 bg-red-400/10 border border-red-400/20 hover:bg-movie-red hover:text-white rounded-lg text-[9px] uppercase tracking-wider font-bold text-red-500 transition-all ml-auto"
                               >
@@ -2125,11 +2171,20 @@ const AdminDashboardInner: React.FC = () => {
                   </h3>
                   
                   {/* Creator Form */}
-                  <form onSubmit={(e) => {
+                  <form onSubmit={async (e) => {
                     e.preventDefault();
-                    if (!newShoot.title) return;
-                    setProductionShoots([...productionShoots, { ...newShoot, id: Date.now() }]);
-                    setNewShoot({ title: '', date: '', status: 'Pre-producción', crew: '', location: '', notes: '' });
+                    if (!newShoot.title || !token) return;
+                    setIsSubmitting(true);
+                    try {
+                      await adminService.createProductionShoot(newShoot, token);
+                      showFeedback('success', 'Rodaje creado correctamente.');
+                      setNewShoot({ title: '', date: '', status: 'Pre-producción', crew: '', location: '', notes: '' });
+                      fetchData();
+                    } catch (err) {
+                      showFeedback('error', 'No se pudo guardar el rodaje.');
+                    } finally {
+                      setIsSubmitting(false);
+                    }
                   }} className="grid md:grid-cols-3 gap-6 mb-10 pb-10 border-b border-white/10">
                     <div>
                       <label className="block text-[10px] uppercase tracking-[0.3em] text-white/40 mb-2 font-black">Título del Rodaje / Proyecto</label>
@@ -2211,9 +2266,20 @@ const AdminDashboardInner: React.FC = () => {
                             </td>
                             <td className="py-4">
                               <button 
-                                onClick={() => {
-                                  const s: any = { 'Pre-producción': 'Grabado', 'Grabado': 'Edición', 'Edición': 'Completado', 'Completado': 'Pre-producción' };
-                                  setProductionShoots(productionShoots.map(item => item.id === shoot.id ? { ...item, status: s[item.status] } : item));
+                                onClick={async () => {
+                                  if (!token) return;
+                                  const nextStatus: any = { 'Pre-producción': 'Grabado', 'Grabado': 'Edición', 'Edición': 'Completado', 'Completado': 'Pre-producción' };
+                                  const updatedStatus = nextStatus[shoot.status] || 'Pre-producción';
+                                  setIsSubmitting(true);
+                                  try {
+                                    await adminService.updateProductionShoot(shoot.id, { status: updatedStatus }, token);
+                                    showFeedback('success', 'Estado de rodaje actualizado.');
+                                    fetchData();
+                                  } catch (err) {
+                                    showFeedback('error', 'No se pudo actualizar el estado del rodaje.');
+                                  } finally {
+                                    setIsSubmitting(false);
+                                  }
                                 }}
                                 className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-[9px] uppercase tracking-wider font-bold text-white transition-all"
                               >
@@ -2241,11 +2307,20 @@ const AdminDashboardInner: React.FC = () => {
                     {/* Add post scheduler */}
                     <div className="bg-white/5 border border-white/5 p-8 rounded-3xl space-y-6">
                       <h4 className="text-xs font-black uppercase tracking-[0.3em] text-movie-red">Programar Publicación</h4>
-                      <form onSubmit={(e) => {
+                      <form onSubmit={async (e) => {
                         e.preventDefault();
-                        if (!socialForm.text) return;
-                        setSocialPosts([...socialPosts, { ...socialForm, id: Date.now(), status: 'Programado' }]);
-                        setSocialForm({ text: '', platform: 'Instagram', date: '' });
+                        if (!socialForm.text || !token) return;
+                        setIsSubmitting(true);
+                        try {
+                          await adminService.createSocialPost({ ...socialForm, status: 'Programado' }, token);
+                          showFeedback('success', 'Publicación social agendada correctamente.');
+                          setSocialForm({ text: '', platform: 'Instagram', date: '' });
+                          fetchData();
+                        } catch (err) {
+                          showFeedback('error', 'No se pudo agendar la publicación.');
+                        } finally {
+                          setIsSubmitting(false);
+                        }
                       }} className="space-y-4">
                         <div>
                           <label className="block text-[10px] uppercase tracking-[0.3em] text-white/40 mb-2 font-black">Copy / Guión del Post</label>
@@ -2307,7 +2382,10 @@ const AdminDashboardInner: React.FC = () => {
                             <div className="flex justify-between items-center text-[10px] text-white/40 border-t border-white/5 pt-2">
                               <span>Estado: <strong className="text-green-400 font-bold uppercase">{post.status}</strong></span>
                               <button 
-                                onClick={() => setSocialPosts(socialPosts.filter(p => p.id !== post.id))}
+                                onClick={async () => {
+                                  if (!token) return;
+                                  await handleDelete('social', post.id);
+                                }}
                                 className="text-red-400 hover:text-red-500 transition-all font-mono uppercase"
                               >
                                 Eliminar
