@@ -843,6 +843,7 @@ const AdminDashboardInner: React.FC = () => {
       setTaskForm({ title: '', due_date: '', reminder: '' });
       showFeedback('success', 'Tarea creada correctamente.');
       fetchData();
+      dispatchGlobalDataSync({ type: 'tasks' });
     } catch (err) {
       showFeedback('error', 'No se pudo guardar la tarea.');
     } finally {
@@ -856,6 +857,7 @@ const AdminDashboardInner: React.FC = () => {
       await adminService.updateTask(id, { completed: !currentStatus }, token);
       showFeedback('success', 'Estado de la tarea actualizado.');
       fetchData();
+      dispatchGlobalDataSync({ type: 'tasks' });
     } catch (err) {
       showFeedback('error', 'No se pudo actualizar la tarea.');
     }
@@ -870,6 +872,7 @@ const AdminDashboardInner: React.FC = () => {
       setNoteForm({ content: '', reminder: '' });
       showFeedback('success', 'Nota guardada correctamente.');
       fetchData();
+      dispatchGlobalDataSync({ type: 'notes' });
     } catch (err) {
       showFeedback('error', 'No se pudo guardar la nota.');
     } finally {
@@ -925,6 +928,7 @@ const AdminDashboardInner: React.FC = () => {
       await adminService.updateCrmClient(client.id, updatedPayload, currentToken);
       showFeedback('success', 'Estado del cliente actualizado.');
       fetchData();
+      dispatchGlobalDataSync({ type: 'crm' });
     } catch (err) {
       console.error("Failed quick status shift:", err);
       showFeedback('error', 'No se pudo actualizar el estado del cliente.');
@@ -970,6 +974,8 @@ const AdminDashboardInner: React.FC = () => {
       showFeedback('success', 'Elemento eliminado correctamente.');
       fetchData();
       if (type === 'crm') dispatchGlobalDataSync({ type: 'crm' });
+      if (type === 'tasks') dispatchGlobalDataSync({ type: 'tasks' });
+      if (type === 'notes') dispatchGlobalDataSync({ type: 'notes' });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'No se pudo eliminar el elemento.';
       showFeedback('error', message);

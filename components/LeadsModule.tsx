@@ -81,9 +81,17 @@ export function LeadsModule() {
     }
   }, [token]);
 
-  useEffect(() => {
+  const handleDataUpdate = useCallback(() => {
     fetchLeads();
   }, [fetchLeads]);
+
+  useEffect(() => {
+    fetchLeads();
+    window.addEventListener('laMovieDataUpdated', handleDataUpdate as EventListener);
+    return () => {
+      window.removeEventListener('laMovieDataUpdated', handleDataUpdate as EventListener);
+    };
+  }, [fetchLeads, handleDataUpdate]);
 
   const filteredLeads = useMemo(() => {
     const list = Array.isArray(leads) ? leads : [];
